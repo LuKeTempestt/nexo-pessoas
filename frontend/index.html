@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#2457d6">
+    <meta
+      name="description"
+      content="Aplicação acadêmica para cadastro e gerenciamento de usuários."
+    >
+    <title>Cadastro Cívico | Gerenciamento de usuários</title>
+    <link rel="stylesheet" href="./css/style.css">
+  </head>
+  <body>
+    <header class="hero">
+      <div class="shell hero__content">
+        <div>
+          <span class="eyebrow">Projeto acadêmico full stack</span>
+          <h1>Cadastro Cívico</h1>
+          <p class="hero__lead">
+            Uma aplicação completa para cadastrar, consultar, editar e excluir
+            usuários com segurança e clareza.
+          </p>
+        </div>
+
+        <dl class="summary" aria-label="Resumo dos cadastros">
+          <div class="summary__item">
+            <dt>Total de usuários</dt>
+            <dd id="totalUsuarios">0</dd>
+          </div>
+          <div class="summary__item">
+            <dt>API</dt>
+            <dd class="api-status">
+              <span class="api-status__dot" aria-hidden="true"></span>
+              Ativa
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <main class="shell main-content">
+      <section class="workspace" aria-labelledby="formTitle">
+        <div class="panel form-panel">
+          <div class="section-heading">
+            <div>
+              <span class="section-kicker">Dados pessoais</span>
+              <h2 id="formTitle">Cadastrar usuário</h2>
+            </div>
+            <span id="formMode" class="mode-badge">Novo registro</span>
+          </div>
+
+          <form id="userForm" novalidate>
+            <div class="field field--wide">
+              <label for="nome">Nome completo</label>
+              <input
+                id="nome"
+                name="nome"
+                type="text"
+                minlength="3"
+                maxlength="120"
+                autocomplete="name"
+                required
+              >
+              <small>Entre 3 e 120 caracteres.</small>
+            </div>
+
+            <div class="field field--wide">
+              <label for="email">E-mail</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                maxlength="254"
+                autocomplete="email"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="cpf">CPF</label>
+              <input
+                id="cpf"
+                name="cpf"
+                type="text"
+                inputmode="numeric"
+                maxlength="14"
+                placeholder="000.000.000-00"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="telefone">Telefone</label>
+              <input
+                id="telefone"
+                name="telefone"
+                type="tel"
+                inputmode="tel"
+                maxlength="15"
+                placeholder="(00) 00000-0000"
+                autocomplete="tel"
+                required
+              >
+            </div>
+
+            <div class="field field--wide">
+              <label for="dataNascimento">Data de nascimento</label>
+              <input
+                id="dataNascimento"
+                name="dataNascimento"
+                type="date"
+                required
+              >
+            </div>
+
+            <div class="form-actions field--wide">
+              <button id="submitButton" class="button button--primary" type="submit">
+                Salvar usuário
+              </button>
+              <button
+                id="cancelEditButton"
+                class="button button--neutral hidden"
+                type="button"
+              >
+                Cancelar edição
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <aside class="panel guide-panel" aria-labelledby="guideTitle">
+          <span class="section-kicker">O que acontece aqui</span>
+          <h2 id="guideTitle">Fluxo do cadastro</h2>
+          <ol class="steps">
+            <li>
+              <strong>O navegador valida.</strong>
+              <span>Campos obrigatórios são conferidos antes do envio.</span>
+            </li>
+            <li>
+              <strong>A API confirma.</strong>
+              <span>CPF, e-mail, telefone e data passam pelas regras do servidor.</span>
+            </li>
+            <li>
+              <strong>O banco protege.</strong>
+              <span>CPF e e-mail não podem ser cadastrados duas vezes.</span>
+            </li>
+          </ol>
+          <code>POST /api/usuarios</code>
+        </aside>
+      </section>
+
+      <div id="message" class="message hidden" role="status" aria-live="polite"></div>
+
+      <section class="panel list-panel" aria-labelledby="listTitle">
+        <div class="section-heading section-heading--list">
+          <div>
+            <span class="section-kicker">Banco de dados</span>
+            <h2 id="listTitle">Usuários cadastrados</h2>
+          </div>
+          <button id="refreshButton" class="button button--neutral" type="button">
+            Atualizar lista
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption class="sr-only">Lista de usuários cadastrados</caption>
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">E-mail</th>
+                <th scope="col">CPF</th>
+                <th scope="col">Telefone</th>
+                <th scope="col">Nascimento</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <strong>Nenhum usuário cadastrado.</strong>
+          <span>Use o formulário acima para criar o primeiro registro.</span>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="deleteDialog" aria-labelledby="dialogTitle">
+      <form method="dialog" class="dialog-card">
+        <span class="section-kicker">Confirmação necessária</span>
+        <h2 id="dialogTitle">Excluir usuário?</h2>
+        <p id="dialogDescription">
+          Esta ação removerá o registro permanentemente.
+        </p>
+        <div class="dialog-actions">
+          <button class="button button--neutral" value="cancel">Cancelar</button>
+          <button id="confirmDeleteButton" class="button button--danger" value="confirm">
+            Excluir definitivamente
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <noscript>Ative o JavaScript para utilizar esta aplicação.</noscript>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
+
