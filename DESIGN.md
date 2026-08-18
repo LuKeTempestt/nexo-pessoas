@@ -1,48 +1,64 @@
-# Sistema visual — Cadastro Cívico
+# Sistema visual — Nexo Pessoas
 
 ## 1. Direção
 
-Interface operacional inspirada na precisão do Linear, escolhida após considerar
-Linear, Notion e Sentry. O produto usa superfícies claras, linhas nítidas e um
-azul cobalto reservado às ações. O elemento memorável é a faixa azul do cabeçalho
-que conduz o olhar do resumo ao formulário, sem transformar um CRUD em carnaval.
+Nexo Pessoas é um produto operacional para pequenas equipes manterem cadastros
+organizados. A interface abandona a aparência de exercício acadêmico e coloca a
+lista de usuários no centro: localizar, cadastrar, corrigir ou remover um registro
+deve exigir poucos segundos.
 
-- Atmosfera: clara, confiável e administrativa.
-- Material: papel digital sobre um fundo azul-neblina.
-- Densidade: média; leitura rápida sem espaços desperdiçados.
-- Tema: claro apenas, adequado ao escopo acadêmico.
+- Atmosfera: sóbria, precisa e confiável.
+- Material: superfícies brancas nítidas sobre um canvas frio e silencioso.
+- Densidade: média-alta no desktop e confortável no celular.
+- Assinatura: um trilho cobalto de quatro pixels no topo da área de trabalho,
+  repetido no símbolo da marca e nos estados de foco.
+- Tema: claro, com cabeçalho grafite para dar identidade sem competir com os dados.
+- Referência: disciplina operacional do Linear, adaptada a um cadastro brasileiro.
+
+Não existem textos didáticos, rotas de API ou explicações técnicas na interface.
+Esses conteúdos pertencem ao `README.md` e ao `GUIA_PASSO_A_PASSO.md`.
 
 ## 2. Cores
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-canvas` | `#edf2f7` | Fundo da página |
-| `--color-surface` | `#ffffff` | Cartões e diálogos |
-| `--color-surface-muted` | `#f7f9fc` | Cabeçalhos e estados vazios |
+| `--color-canvas` | `#f2f4f8` | Fundo da aplicação |
+| `--color-surface` | `#ffffff` | Painéis, campos e diálogos |
+| `--color-surface-muted` | `#f8f9fc` | Cabeçalhos, hover e estados vazios |
+| `--color-topbar` | `#111827` | Barra superior |
+| `--color-topbar-muted` | `#aeb8ca` | Texto auxiliar da barra superior |
+| `--color-topbar-border` | `rgb(255 255 255 / 8%)` | Divisor da barra superior |
 | `--color-ink` | `#172033` | Texto principal |
-| `--color-ink-muted` | `#5c667a` | Texto auxiliar |
-| `--color-border` | `#d8dee9` | Bordas e divisores |
-| `--color-accent` | `#2457d6` | Ação primária e foco |
-| `--color-accent-hover` | `#1c45ad` | Hover primário |
-| `--color-danger` | `#b42318` | Exclusão e erro |
-| `--color-danger-hover` | `#8f1c13` | Hover destrutivo |
-| `--color-success` | `#067647` | Confirmação |
-| `--color-warning` | `#b54708` | Aviso |
-| `--color-focus` | `#84adff` | Anel de foco |
+| `--color-ink-muted` | `#667085` | Texto auxiliar |
+| `--color-border` | `#dfe3eb` | Bordas e divisores |
+| `--color-border-strong` | `#c8ceda` | Hover de campos e botões |
+| `--color-accent` | `#315efb` | Ação primária, trilho e foco |
+| `--color-accent-hover` | `#2448c7` | Hover primário |
+| `--color-accent-soft` | `#edf1ff` | Avatares e seleção suave |
+| `--color-accent-border` | `rgb(49 94 251 / 14%)` | Contorno de avatar |
+| `--color-danger` | `#c0362c` | Exclusão e erro |
+| `--color-danger-hover` | `#982c24` | Hover destrutivo |
+| `--color-danger-soft` | `#fff1f0` | Fundo de erro |
+| `--color-success` | `#087a55` | Confirmação e disponibilidade |
+| `--color-success-soft` | `#eaf8f2` | Fundo de sucesso |
+| `--color-focus` | `#9db4ff` | Anel de foco |
+| `--color-backdrop` | `rgb(17 24 39 / 64%)` | Fundo dos diálogos |
 
 Contraste mínimo: 4,5:1 para texto comum e 3:1 para texto grande e controles.
-O azul é funcional: botões, links, foco e indicadores ativos.
+O cobalto é funcional; não aparece como decoração gratuita.
 
 ## 3. Tipografia
 
-- Fonte principal: `Segoe UI`, `Arial`, `sans-serif`.
-- Fonte monoespaçada: `Cascadia Mono`, `Consolas`, `monospace`.
-- Display: `clamp(2rem, 5vw, 3.5rem)`, peso 750, altura 1,05.
-- H1: `2rem`, peso 700, altura 1,15.
-- H2: `1.25rem`, peso 700, altura 1,3.
-- Corpo: `1rem`, peso 400, altura 1,55.
-- Pequeno: `0.875rem`, peso 500, altura 1,45.
-- Rótulo: `0.8125rem`, peso 700, letras a `0.02em`.
+- Fonte principal: `Segoe UI Variable`, `Segoe UI`, `Arial`, `sans-serif`.
+- Fonte de dados: `Cascadia Mono`, `Consolas`, `monospace`.
+- Marca: `1rem`, peso 720, altura 1,2.
+- H1: `1.75rem`, peso 720, altura 1,2.
+- H2: `1.125rem`, peso 700, altura 1,35.
+- Métrica: `1.375rem`, peso 720, altura 1,2.
+- Corpo: `0.9375rem`, peso 400, altura 1,55.
+- Controle: `0.875rem`, peso 680, altura 1,2.
+- Pequeno: `0.8125rem`, peso 500, altura 1,45.
+- Rótulo: `0.75rem`, peso 700, letras a `0.04em`.
 
 ## 4. Espaçamento e layout
 
@@ -60,62 +76,79 @@ Unidade base: 4px.
 | `--space-10` | `40px` |
 | `--space-12` | `48px` |
 
-- Conteúdo máximo: 1184px.
+- Conteúdo máximo: 1240px.
+- Barra superior: 64px.
 - Margem móvel: 16px.
-- Grid principal: formulário de 4 colunas; tabela abaixo.
-- Breakpoints: 720px e 980px.
-- Raio pequeno: 8px; raio grande: 16px.
+- Desktop: cabeçalho da página, resumo horizontal e painel de dados.
+- Formulário: diálogo de até 680px, duas colunas quando houver espaço.
+- Breakpoints: 760px e 1024px.
+- Raios: 6px para controles, 10px para painéis e 14px para diálogos.
 
 ## 5. Componentes
 
+### Marca e barra superior
+
+- Símbolo geométrico próprio com trilho cobalto e wordmark textual.
+- Estado de serviço usa ponto verde e o texto “Sistema disponível”.
+- Não exibe navegação ou conta fictícia.
+
 ### Botão
 
-- Variantes: primário, neutro e destrutivo.
+- Variantes: primário, neutro, ícone e destrutivo.
 - Estados: padrão, hover, active, focus-visible, disabled e loading.
-- Acessibilidade: elemento `button`, rótulo textual e foco sempre visível.
-- Movimento: `transform` e `opacity`, 140ms.
+- Altura mínima: 40px; alvo de toque preservado no celular.
+- Movimento: `transform`, `opacity` e `filter`, 140ms.
 
-### Campo
+### Campo e busca
 
-- Estrutura: `label`, controle e mensagem contextual.
-- Estados: padrão, focus, inválido e disabled.
-- Acessibilidade: associação `for`/`id`, `aria-invalid` e mensagem anunciável.
+- Estrutura: `label`, controle e mensagem contextual quando necessária.
+- Estados: padrão, hover, focus, inválido e disabled.
+- A busca possui ícone, rótulo acessível e filtra nome, e-mail, CPF e telefone.
 
-### Painel
+### Faixa de resumo
 
-- Variantes: formulário, resumo e listagem.
-- Profundidade: superfície branca, borda e sombra sutil.
-- Estado de carregamento: conteúdo preservado e controles desabilitados.
+- Um único painel dividido em três métricas reais: total, cadastrados hoje e
+  disponibilidade do sistema.
+- Sem cartões de vaidade, gráficos inventados ou números simulados.
+
+### Painel de dados
+
+- Trilho cobalto no topo, barra de ferramentas e tabela integrados.
+- Profundidade: borda mais sombra curta e difusa.
+- Estados: carregando, vazio, sem resultados, preenchido e erro.
 
 ### Tabela responsiva
 
-- Desktop: tabela completa, cabeçalho fixo dentro do painel.
-- Móvel: cada linha se torna um cartão rotulado.
-- Estados: carregando, vazio, preenchido e erro.
+- Desktop: tabela com avatar de iniciais, ID, contato, CPF, telefone, nascimento,
+  cadastro e ações.
+- Móvel: cada linha vira um cartão rotulado; ações ocupam a largura disponível.
 - Acessibilidade: `caption`, cabeçalhos `scope="col"` e ações nomeadas.
 
-### Mensagem e confirmação
+### Diálogo de usuário
 
-- Variantes: sucesso, erro e aviso.
-- Confirmação de exclusão: elemento `dialog`, foco contido e ação destrutiva explícita.
-- Movimento: entrada por opacidade e escala, respeitando movimento reduzido.
+- Usado para criação e edição; o produto nunca mantém o formulário ocupando a tela.
+- Cabeçalho, campos, ação de cancelar e ação principal coerentes com o modo.
+- Escape fecha; foco inicial vai ao nome; fechamento restaura o foco nativo.
+
+### Toast e confirmação
+
+- Toast fixo no canto superior direito para sucesso e erro, com região anunciável.
+- Exclusão usa diálogo separado e ação destrutiva explícita.
+- Entrada por opacidade e escala, respeitando movimento reduzido.
 
 ## 6. Movimento e interação
 
 - Microinteração: 140ms `ease-out`.
-- Entrada de diálogo: 220ms `cubic-bezier(0.16, 1, 0.3, 1)`.
+- Entrada de diálogo e toast: 180ms `cubic-bezier(0.16, 1, 0.3, 1)`.
 - Somente `transform`, `opacity` e `filter` são animados.
 - `prefers-reduced-motion: reduce` elimina movimentos não essenciais.
-- Teclado: Tab percorre controles; Escape fecha o diálogo.
+- Teclado: Tab percorre controles; Escape fecha diálogos.
 
 ## 7. Profundidade e superfícies
 
-Estratégia mista e contida:
-
-- Painéis: borda `--color-border` e sombra `0 12px 32px rgb(23 32 51 / 8%)`.
+- Painel principal: borda e sombra `0 12px 32px rgb(23 32 51 / 8%)`.
+- Resumo: borda, sem sombra; divisores internos organizam as métricas.
 - Campos: borda, sem sombra em repouso.
 - Foco: anel de 3px com `--color-focus`.
-- Diálogo: sombra `0 24px 64px rgb(23 32 51 / 24%)`.
-- O cabeçalho pode usar uma textura linear discreta; painéis não usam vidro,
-  gradientes decorativos ou sombras gratuitas.
-
+- Diálogo: sombra `0 24px 64px rgb(17 24 39 / 24%)`.
+- Barra superior: preenchimento sólido; nada de vidro ou gradiente genérico.

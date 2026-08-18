@@ -1,27 +1,55 @@
-# Cadastro Cívico — CRUD de Usuários
+# Nexo Pessoas
 
-Aplicação web acadêmica para cadastrar, listar, consultar, editar e excluir
-usuários. O projeto separa interface, API REST e banco de dados e contém testes
-automatizados da validação, das regras de negócio e das rotas HTTP.
-
-## Tecnologias
-
-- Front-end: HTML semântico, CSS responsivo e JavaScript modular.
-- Back-end: Node.js, Express, `pg`, CORS e dotenv.
-- Banco de dados: PostgreSQL 17 em Docker.
-- Testes: `node:test` e Supertest.
-- Controle de versão: Git.
+Produto full stack para gerenciamento de usuários. A aplicação oferece uma
+interface React responsiva, API REST em camadas e persistência PostgreSQL com
+validações de integridade.
 
 ## Funcionalidades
 
-- Cadastro com validação de nome, e-mail, CPF, telefone e nascimento.
-- Listagem responsiva em tabela no desktop e cartões no celular.
-- Consulta individual por ID.
-- Edição no mesmo formulário.
-- Exclusão com diálogo de confirmação.
-- E-mail e CPF únicos no PostgreSQL.
-- Respostas HTTP `200`, `201`, `204`, `400`, `404`, `409` e `500`.
-- Mensagens acessíveis e navegação por teclado.
+- Cadastro, consulta, edição e exclusão de usuários.
+- Busca por nome, e-mail, CPF, telefone ou ID.
+- Ordenação por data ou nome e paginação no cliente.
+- Exportação dos resultados filtrados em CSV.
+- Métricas reais de total e cadastros realizados no dia.
+- Máscaras brasileiras de CPF e telefone.
+- Validação compartilhada no formulário com Zod e validação independente na API.
+- Estados de carregamento, erro, vazio e ausência de resultados.
+- Confirmação para exclusão, mensagens de retorno e navegação por teclado.
+- Layout responsivo em tabela no desktop e cartões no celular.
+
+## Tecnologias
+
+### Front-end
+
+- React 19 e TypeScript.
+- Vite 7 para desenvolvimento e build.
+- TanStack Query para cache e sincronização com a API.
+- React Hook Form e Zod para formulários tipados.
+- Lucide React para ícones.
+- Vitest e Testing Library para testes.
+
+### Back-end e banco
+
+- Node.js 22 e Express 5.
+- PostgreSQL 17 e driver `pg`.
+- Docker Compose para o banco local.
+- `node:test` e Supertest para testes de unidade e integração.
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    UI[React + TypeScript] -->|HTTP / JSON| API[Express REST]
+    API --> C[Controllers]
+    C --> S[Services]
+    S --> V[Validação]
+    S --> R[Repositories]
+    R --> DB[(PostgreSQL)]
+```
+
+A interface não contém explicações acadêmicas. O estudo do código está no
+[Guia passo a passo](./GUIA_PASSO_A_PASSO.md), e as decisões estruturais estão
+em [Arquitetura](./docs/ARQUITETURA.md).
 
 ## Estrutura
 
@@ -29,32 +57,32 @@ automatizados da validação, das regras de negócio e das rotas HTTP.
 crud-usuarios/
 ├── backend/
 │   ├── src/
-│   │   ├── config/          # Conexão com o PostgreSQL
+│   │   ├── config/          # Conexão com PostgreSQL
 │   │   ├── controllers/     # Entrada e saída HTTP
-│   │   ├── errors/          # Erros conhecidos da aplicação
+│   │   ├── errors/          # Erros conhecidos
 │   │   ├── middlewares/     # Tratamento central de erros
 │   │   ├── repositories/    # Consultas SQL
-│   │   ├── routes/          # Endereços da API
+│   │   ├── routes/          # Rotas REST
 │   │   ├── services/        # Regras de negócio
-│   │   ├── validation/      # Normalização e validação
-│   │   ├── app.js
-│   │   └── server.js
-│   ├── test/
-│   ├── .env.example
-│   └── package.json
-├── database/
-│   ├── 00_criar_banco.sql
-│   └── 01_criar_tabela.sql
+│   │   └── validation/      # Normalização e validação
+│   └── test/
+├── database/                # Scripts SQL
+├── docs/                    # Documentação técnica
 ├── frontend/
-│   ├── css/style.css
-│   ├── js/
-│   └── index.html
+│   ├── src/
+│   │   ├── components/      # Componentes React
+│   │   ├── lib/             # API, validação e utilitários
+│   │   ├── test/            # Configuração de testes
+│   │   ├── types/           # Tipos do domínio
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   └── vite.config.ts
 ├── compose.yaml
 ├── DESIGN.md
-└── GUIA_PASSO_A_PASSO.md
+└── package.json
 ```
 
-## Como executar
+## Como executar em desenvolvimento
 
 ### Pré-requisitos
 
@@ -62,80 +90,63 @@ crud-usuarios/
 - Docker Desktop.
 - Git.
 
-### 1. Inicie o PostgreSQL
+### 1. Prepare o projeto
 
-Na raiz do projeto:
-
-```powershell
-docker compose up -d database
-```
-
-O banco deste projeto usa a porta `5433`, pois a porta padrão `5432` já estava
-ocupada neste computador.
-
-### 2. Configure o back-end
+Na raiz:
 
 ```powershell
-cd backend
-Copy-Item .env.example .env
 npm install
+Copy-Item backend/.env.example backend/.env
 ```
 
-No ambiente local já preparado, o arquivo `.env` está configurado. Em outro
-computador, confira a senha e os demais valores antes de iniciar.
-
-Se o npm mostrar `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, mantenha a verificação TLS e
-use os certificados confiáveis do Windows:
+Se o npm apresentar `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, use os certificados
+confiáveis do Windows sem desativar a verificação TLS:
 
 ```powershell
 $env:NODE_OPTIONS='--use-system-ca'
 npm install
 ```
 
-Nunca resolva esse erro com `strict-ssl=false`.
-
-### 3. Inicie a aplicação
+### 2. Inicie o banco
 
 ```powershell
-npm start
+docker compose up -d database
 ```
 
-Abra no navegador:
+O PostgreSQL é publicado na porta `5433` para evitar conflito com instalações
+locais que usam `5432`.
 
-```text
-http://localhost:3000
-```
-
-Durante o desenvolvimento, use:
+### 3. Inicie front-end e API
 
 ```powershell
 npm run dev
 ```
 
-### 4. Execute os testes
+- Interface Vite: `http://localhost:5173`
+- API Express: `http://localhost:3000`
+
+O Vite encaminha chamadas `/api` para o Express durante o desenvolvimento.
+
+## Como executar o build de produção
 
 ```powershell
+npm run build
+npm start
+```
+
+Abra `http://localhost:3000`. Nesse modo, o Express entrega os arquivos
+otimizados gerados em `frontend/dist`.
+
+## Qualidade
+
+```powershell
+npm run typecheck
 npm test
+npm run build
 ```
 
-### 5. Pare o banco
-
-Na raiz do projeto:
-
-```powershell
-docker compose down
-```
-
-Esse comando para os contêineres sem apagar o volume com os dados.
-
-## Execução sem Docker
-
-Se já houver um PostgreSQL configurado:
-
-1. Execute `database/00_criar_banco.sql` conectado ao banco `postgres`.
-2. Conecte-se ao banco `crud_usuarios`.
-3. Execute `database/01_criar_tabela.sql`.
-4. Ajuste `backend/.env` com host, porta, usuário e senha corretos.
+Os comandos verificam tipos, regras de negócio, rotas HTTP, validadores,
+formatadores, busca, ordenação e build de produção.
 
 ## Rotas da API
 
@@ -148,7 +159,7 @@ Se já houver um PostgreSQL configurado:
 | `PUT` | `/api/usuarios/:id` | `200` | Atualiza usuário |
 | `DELETE` | `/api/usuarios/:id` | `204` | Exclui usuário |
 
-Exemplo de corpo JSON:
+Exemplo de corpo:
 
 ```json
 {
@@ -160,31 +171,29 @@ Exemplo de corpo JSON:
 }
 ```
 
-O CPF acima é um exemplo público usado somente em testes.
-
 ## Regras de negócio
 
-- Nome: entre 3 e 120 caracteres.
-- E-mail: formato válido e no máximo 254 caracteres.
-- CPF: 11 dígitos e verificadores válidos.
-- Telefone: 10 ou 11 dígitos.
-- Nascimento: data existente e não futura.
-- CPF e e-mail: não podem se repetir.
+- Nome entre 3 e 120 caracteres.
+- E-mail válido com até 254 caracteres.
+- CPF válido e único.
+- Telefone brasileiro com DDD.
+- Data de nascimento existente e não futura.
+- E-mail normalizado e único.
 
 ## Segurança e integridade
 
-- SQL parametrizado com `$1`, `$2` etc.
-- Senha do banco fora do Git.
+- Consultas SQL parametrizadas.
+- Credenciais fora do Git.
 - Restrições `PRIMARY KEY`, `NOT NULL`, `UNIQUE` e `CHECK`.
-- Erros internos não são expostos ao navegador.
-- Dados inseridos pelo usuário são renderizados com `textContent`.
+- Mensagens internas não são expostas ao navegador.
+- React escapa conteúdo textual renderizado por padrão.
+- A API não confia apenas na validação do front-end.
 
 ## Repositório
 
-O repositório Git local está inicializado e contém o histórico do projeto. O link
-remoto deve ser adicionado depois da publicação na conta Git do estudante.
+O Git local está inicializado. Depois de publicar, substitua esta linha pelo link
+do seu repositório GitHub.
 
 ## Autor
 
 Preencha com seu nome antes da entrega.
-

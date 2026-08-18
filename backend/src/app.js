@@ -11,7 +11,7 @@ function createApp({ repository }) {
   const app = express();
   const service = createUsuarioService(repository);
   const controller = createUsuarioController(service);
-  const frontendPath = path.resolve(__dirname, "../../frontend");
+  const frontendPath = path.resolve(__dirname, "../../frontend/dist");
 
   app.disable("x-powered-by");
   app.use(cors());
@@ -27,6 +27,15 @@ function createApp({ repository }) {
   );
 
   app.use(express.static(frontendPath));
+
+  app.get("/{*path}", (request, response, next) => {
+    if (request.path.startsWith("/api")) {
+      next();
+      return;
+    }
+
+    response.sendFile(path.join(frontendPath, "index.html"));
+  });
 
   app.use("/api", (request, response) => {
     response.status(404).json({

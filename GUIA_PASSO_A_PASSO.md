@@ -1,165 +1,200 @@
 # Guia de estudo passo a passo
 
-Este arquivo explica a ordem correta para estudar o projeto. Não comece decorando
-o código. Primeiro entenda o caminho percorrido por uma requisição.
+Este guia ensina o projeto na ordem em que os dados viajam. A explicação fica
+aqui; a interface do produto fica livre para fazer o trabalho dela.
 
-## 1. Veja o sistema funcionando
+## 1. Execute e observe
 
-Inicie o banco e o servidor conforme o `README.md`. Abra
-`http://localhost:3000`, cadastre um usuário e observe a tabela.
+Siga o `README.md`, abra `http://localhost:5173` e faça quatro operações:
 
-Fluxo do cadastro:
+1. cadastre um usuário;
+2. busque esse usuário;
+3. edite o telefone;
+4. exclua o registro.
+
+O caminho do cadastro é:
 
 ```text
-Formulário
+Componente React
+  -> TanStack Query mutation
   -> POST /api/usuarios
   -> controller
   -> service
   -> validator
   -> repository
   -> PostgreSQL
-  -> resposta 201
-  -> tabela atualizada
+  -> HTTP 201
+  -> cache invalidado
+  -> lista renderizada novamente
 ```
 
-## 2. Estude o banco primeiro
+## 2. Entenda os dados antes da tela
 
 Abra `database/01_criar_tabela.sql`.
 
-Perguntas para responder:
+- `id` identifica cada linha.
+- `NOT NULL` impede dados obrigatórios ausentes.
+- `UNIQUE` impede CPF e e-mail duplicados.
+- `DEFAULT CURRENT_TIMESTAMP` registra quando a linha nasceu.
 
-1. Por que `id` é chave primária?
-2. Por que e-mail e CPF usam `UNIQUE`?
-3. O que aconteceria se `nome` aceitasse `NULL`?
-4. Por que `data_cadastro` possui valor padrão?
-
-Execute no banco:
+Experimente no PostgreSQL:
 
 ```sql
-SELECT * FROM usuarios ORDER BY id;
+SELECT * FROM usuarios ORDER BY data_cadastro DESC;
 ```
 
-## 3. Estude a conexão
+## 3. Siga o back-end por camadas
 
-Abra `backend/src/config/database.js`.
+Leia nesta ordem:
 
-O `Pool` mantém conexões reutilizáveis. As credenciais vêm do `.env`, que não é
-versionado porque contém senha.
+1. `backend/src/routes/usuarioRoutes.js` — associa método e endereço;
+2. `backend/src/controllers/usuarioController.js` — traduz HTTP;
+3. `backend/src/services/usuarioService.js` — aplica regras de negócio;
+4. `backend/src/validation/usuarioValidator.js` — normaliza e valida;
+5. `backend/src/repositories/postgresUsuarioRepository.js` — executa SQL;
+6. `backend/src/middlewares/tratadorErros.js` — converte falhas em respostas.
 
-## 4. Estude o repositório
+As camadas existem para evitar um arquivo gigante que saiba HTTP, regra e SQL ao
+mesmo tempo. Arquivo gigante parece produtivo até precisar ser testado.
 
-Abra `backend/src/repositories/postgresUsuarioRepository.js`.
+## 4. Entenda a API REST
 
-O repositório conhece SQL, mas não conhece HTTP. Repare nos parâmetros:
+| Ação | Método | Rota | Resposta |
+|---|---|---|---:|
+| Listar | `GET` | `/api/usuarios` | `200` |
+| Consultar | `GET` | `/api/usuarios/:id` | `200` |
+| Cadastrar | `POST` | `/api/usuarios` | `201` |
+| Atualizar | `PUT` | `/api/usuarios/:id` | `200` |
+| Excluir | `DELETE` | `/api/usuarios/:id` | `204` |
 
-```sql
-WHERE id = $1
-```
+Abra o navegador, pressione `F12`, entre em **Network** e repita uma operação.
+Inspecione `Request Payload`, `Status Code` e `Response`.
 
-O valor é enviado separadamente. Isso impede que texto fornecido pelo usuário
-seja interpretado como comando SQL.
+## 5. Comece o React pelo ponto de entrada
 
-## 5. Estude a validação
+Leia:
 
-Abra `backend/src/validation/usuarioValidator.js` e depois
-`backend/test/usuarioValidator.test.js`.
+1. `frontend/src/main.tsx`;
+2. `frontend/src/App.tsx`;
+3. `frontend/src/types/user.ts`.
 
-Observe três operações diferentes:
+`main.tsx` cria a aplicação e fornece o `QueryClient`. `App.tsx` coordena os
+estados da página. `user.ts` define o formato que TypeScript espera dos dados.
 
-- normalizar: remover espaços, pontuação e diferenças de maiúsculas;
-- validar: recusar dados fora das regras;
-- converter: transformar o ID recebido pela URL em número seguro.
+Quando o back-end muda um nome de campo, o tipo ajuda a encontrar no front-end
+os pontos que precisam mudar.
 
-Execute somente os testes:
+## 6. Estude a comunicação com a API
+
+Abra `frontend/src/lib/api.ts`.
+
+A função `request` centraliza:
+
+- cabeçalho JSON;
+- tempo máximo de espera;
+- leitura do corpo;
+- mensagens de erro;
+- tratamento da resposta `204`, que não possui corpo.
+
+Depois volte a `App.tsx` e procure `useQuery` e `useMutation`:
+
+- `useQuery` busca e guarda a lista em cache;
+- `useMutation` cria, atualiza ou exclui;
+- `invalidateQueries` marca a lista como desatualizada e busca dados novos.
+
+## 7. Estude o formulário tipado
+
+Leia:
+
+1. `frontend/src/lib/userSchema.ts`;
+2. `frontend/src/components/UserFormDialog.tsx`.
+
+O Zod descreve as regras do formulário. O React Hook Form registra os campos e
+mostra os erros. Antes do envio, CPF e telefone perdem a máscara.
+
+Importante: a API valida tudo novamente. Validação no navegador melhora a
+experiência; validação no servidor protege o sistema.
+
+## 8. Estude busca, ordenação e paginação
+
+Abra `frontend/src/lib/userUtils.ts` e depois
+`frontend/src/components/UserDataPanel.tsx`.
+
+- A busca remove acentos e pontuação para comparar dados.
+- A ordenação cria uma cópia do array, preservando o estado original.
+- A paginação usa `slice` para exibir oito registros por página.
+- `useDeferredValue` mantém a digitação responsiva durante a filtragem.
+
+## 9. Estude os componentes visuais
+
+Leia `frontend/src/components` nesta ordem:
+
+1. `Button.tsx` — componente reutilizável e tipado;
+2. `Topbar.tsx` e `Metrics.tsx` — componentes de apresentação;
+3. `UserDataPanel.tsx` — tabela e controles;
+4. `UserFormDialog.tsx` — criação e edição;
+5. `ConfirmDialog.tsx` e `Toast.tsx` — retornos das ações.
+
+Os tokens, cores, espaçamentos e estados estão documentados em `DESIGN.md` e
+implementados em `frontend/src/styles.css`.
+
+## 10. Entenda os testes
+
+Execute:
 
 ```powershell
-cd backend
 npm test
 ```
 
-## 6. Estude a regra de negócio
+No back-end:
 
-Abra `backend/src/services/usuarioService.js`.
+- testes de validação provam entradas válidas e inválidas;
+- testes do service isolam regras de negócio;
+- testes da aplicação exercitam as rotas HTTP.
 
-O service coordena validação e persistência. Ele decide que buscar, editar ou
-excluir um ID inexistente deve gerar `404`.
+No front-end:
 
-Compare com `backend/test/usuarioService.test.js`. Os testes usam um banco em
-memória para provar a regra sem depender do PostgreSQL.
+- formatadores provam máscaras e datas;
+- `userSchema` prova o formulário;
+- `userUtils` prova busca, ordenação e métricas.
 
-## 7. Estude o HTTP
+Rode também:
 
-Leia nesta ordem:
+```powershell
+npm run typecheck
+npm run build
+```
 
-1. `backend/src/routes/usuarioRoutes.js`;
-2. `backend/src/controllers/usuarioController.js`;
-3. `backend/src/middlewares/tratadorErros.js`;
-4. `backend/src/app.js`;
-5. `backend/test/app.test.js`.
+Teste verifica comportamento. TypeScript verifica contratos. Build prova que a
+versão de produção pode ser gerada. São verificações diferentes.
 
-Correspondência importante:
+## 11. Exercícios para continuar aprendendo
 
-| Operação | Método | Código de sucesso |
-|---|---|---:|
-| Listar | `GET` | `200` |
-| Cadastrar | `POST` | `201` |
-| Atualizar | `PUT` | `200` |
-| Excluir | `DELETE` | `204` |
+Faça um por vez e escreva um teste antes da alteração:
 
-## 8. Estude o front-end
+1. mova a paginação para a API;
+2. adicione filtro por faixa de idade;
+3. implemente autenticação e autorização;
+4. registre auditoria de criação, edição e exclusão;
+5. crie uma página de detalhes do usuário;
+6. adicione testes de componentes com Testing Library;
+7. publique interface, API e banco em serviços de nuvem.
 
-Leia nesta ordem:
-
-1. `frontend/index.html`: estrutura e acessibilidade;
-2. `frontend/css/style.css`: layout e responsividade;
-3. `frontend/js/formatters.js`: máscaras visuais;
-4. `frontend/js/api.js`: comunicação HTTP;
-5. `frontend/js/ui.js`: manipulação da página;
-6. `frontend/js/app.js`: estado e coordenação.
-
-O front-end não monta linhas com HTML fornecido pelo usuário. Ele usa
-`textContent`, evitando que nomes ou e-mails sejam interpretados como marcação.
-
-## 9. Use o depurador do navegador
-
-Abra as ferramentas de desenvolvedor com `F12`:
-
-1. Vá à aba `Network`.
-2. Cadastre um usuário.
-3. Selecione `POST /api/usuarios`.
-4. Observe `Request Payload`, `Status Code` e `Response`.
-
-Repita com edição e exclusão. Essa aba mostra a conversa real entre tela e API.
-
-## 10. Faça alterações pequenas
-
-Exercícios recomendados:
-
-1. Adicione busca por nome.
-2. Mostre a data do cadastro na tabela.
-3. Adicione paginação à rota de listagem.
-4. Crie um campo opcional de endereço.
-5. Adicione um teste antes de cada mudança.
-
-## 11. Versione cada avanço
-
-Exemplo:
+## 12. Versione com intenção
 
 ```powershell
 git add .
-git commit -m "feat: adiciona busca de usuarios"
+git commit -m "feat: adiciona filtro por faixa de idade"
 ```
 
-Um commit deve representar uma mudança compreensível. “Alterações finais 7” não
-explica nada; é apenas um pedido de socorro disfarçado de histórico.
+O commit deve contar uma mudança compreensível. “Final agora vai 3” conta apenas
+uma história de sofrimento; o Git merece fatos.
 
-## 12. Prepare a entrega
+## 13. Checklist de entrega
 
-Antes de enviar:
-
-- troque o autor no `README.md`;
-- publique o repositório na sua conta;
-- adicione o link remoto ao README;
-- execute `npm test`;
-- teste criar, listar, editar e excluir;
-- confira se `backend/.env` não aparece no `git status`.
+- preencha autor e link do repositório no `README.md`;
+- confirme que `backend/.env` não aparece no Git;
+- execute `npm run typecheck`, `npm test` e `npm run build`;
+- teste cadastro, busca, edição, exportação e exclusão;
+- confira desktop e celular;
+- publique apenas depois de testar o build de produção.
