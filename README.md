@@ -6,7 +6,7 @@ validações de integridade.
 
 ## Funcionalidades
 
-- Cadastro, consulta, edição e exclusão de usuários.
+- Cadastro, consulta, edição e exclusão lógica de usuários.
 - Busca por nome, e-mail, CPF, telefone ou ID.
 - Ordenação por data ou nome e paginação no cliente.
 - Exportação dos resultados filtrados em CSV.
@@ -14,7 +14,9 @@ validações de integridade.
 - Máscaras brasileiras de CPF e telefone.
 - Validação compartilhada no formulário com Zod e validação independente na API.
 - Estados de carregamento, erro, vazio e ausência de resultados.
-- Confirmação para exclusão, mensagens de retorno e navegação por teclado.
+- Área de usuários ocultos com restauração do cadastro.
+- Ativação e desativação sem retirar o usuário da lista principal.
+- Confirmação para ocultação, mensagens de retorno e navegação por teclado.
 - Layout responsivo em tabela no desktop e cartões no celular.
 
 ## Tecnologias
@@ -66,7 +68,7 @@ crud-usuarios/
 │   │   ├── services/        # Regras de negócio
 │   │   └── validation/      # Normalização e validação
 │   └── test/
-├── database/                # Scripts SQL
+├── database/                # Criação e migrações SQL reversíveis
 ├── docs/                    # Documentação técnica
 ├── frontend/
 │   ├── src/
@@ -154,10 +156,14 @@ formatadores, busca, ordenação e build de produção.
 |---|---|---:|---|
 | `GET` | `/api/saude` | `200` | Verifica a API |
 | `GET` | `/api/usuarios` | `200` | Lista usuários |
+| `GET` | `/api/usuarios/ocultos` | `200` | Lista usuários ocultos |
 | `GET` | `/api/usuarios/:id` | `200` | Consulta por ID |
 | `POST` | `/api/usuarios` | `201` | Cadastra usuário |
 | `PUT` | `/api/usuarios/:id` | `200` | Atualiza usuário |
-| `DELETE` | `/api/usuarios/:id` | `204` | Exclui usuário |
+| `DELETE` | `/api/usuarios/:id` | `204` | Oculta usuário sem apagar |
+| `PATCH` | `/api/usuarios/:id/restaurar` | `200` | Restaura usuário oculto |
+| `PATCH` | `/api/usuarios/:id/desativar` | `200` | Desativa usuário visível |
+| `PATCH` | `/api/usuarios/:id/ativar` | `200` | Reativa usuário desativado |
 
 Exemplo de corpo:
 
@@ -179,12 +185,18 @@ Exemplo de corpo:
 - Telefone brasileiro com DDD.
 - Data de nascimento existente e não futura.
 - E-mail normalizado e único.
+- Exclusão é lógica: `data_exclusao` recebe a data da operação.
+- Usuários ocultos não aparecem nas consultas normais e podem ser restaurados.
+- Usuários desativados permanecem visíveis e podem ser reativados.
+- Status e data de desativação obedecem a uma restrição de consistência no banco.
 
 ## Segurança e integridade
 
 - Consultas SQL parametrizadas.
 - Credenciais fora do Git.
 - Restrições `PRIMARY KEY`, `NOT NULL`, `UNIQUE` e `CHECK`.
+- Índices parciais separam consultas de usuários ativos e ocultos.
+- A exclusão lógica preserva histórico, identidade e possibilidade de restauração.
 - Mensagens internas não são expostas ao navegador.
 - React escapa conteúdo textual renderizado por padrão.
 - A API não confia apenas na validação do front-end.

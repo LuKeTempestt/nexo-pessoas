@@ -5,8 +5,8 @@ function csvCell(value: string | number): string {
   return `"${String(value).replaceAll('"', '""')}"`;
 }
 
-export function usersToCsv(users: User[]): string {
-  const header = ["ID", "Nome", "E-mail", "CPF", "Telefone", "Nascimento", "Cadastro"];
+export function usersToCsv(users: readonly User[]): string {
+  const header = ["ID", "Nome", "E-mail", "CPF", "Telefone", "Nascimento", "Status", "Cadastro"];
   const rows = users.map((user) => [
     user.id,
     user.nome,
@@ -14,6 +14,7 @@ export function usersToCsv(users: User[]): string {
     formatCpf(user.cpf),
     formatPhone(user.telefone),
     formatDate(user.dataNascimento),
+    user.ativo ? "Ativo" : "Desativado",
     new Date(user.dataCadastro).toLocaleString("pt-BR")
   ]);
 
@@ -22,7 +23,7 @@ export function usersToCsv(users: User[]): string {
     .join("\r\n");
 }
 
-export function downloadUsersCsv(users: User[]): void {
+export function downloadUsersCsv(users: readonly User[]): void {
   const blob = new Blob(["\uFEFF", usersToCsv(users)], {
     type: "text/csv;charset=utf-8"
   });

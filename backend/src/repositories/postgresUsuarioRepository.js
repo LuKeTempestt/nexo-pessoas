@@ -6,7 +6,10 @@ function createPostgresUsuarioRepository(database) {
     cpf,
     telefone,
     data_nascimento::text AS "dataNascimento",
-    data_cadastro AS "dataCadastro"
+    data_cadastro AS "dataCadastro",
+    ativo,
+    data_desativacao AS "dataDesativacao",
+    data_exclusao AS "dataExclusao"
   `;
 
   return {
@@ -14,7 +17,19 @@ function createPostgresUsuarioRepository(database) {
       const result = await database.query(`
         SELECT ${returningFields}
         FROM usuarios
+        WHERE data_exclusao IS NULL
         ORDER BY id DESC
+      `);
+
+      return result.rows;
+    },
+
+    async findAllDeleted() {
+      const result = await database.query(`
+        SELECT ${returningFields}
+        FROM usuarios
+        WHERE data_exclusao IS NOT NULL
+        ORDER BY data_exclusao DESC
       `);
 
       return result.rows;
@@ -24,7 +39,8 @@ function createPostgresUsuarioRepository(database) {
       const result = await database.query(
         `SELECT ${returningFields}
          FROM usuarios
-         WHERE id = $1`,
+         WHERE id = $1
+           AND data_exclusao IS NULL`,
         [id]
       );
 
@@ -74,6 +90,7 @@ function createPostgresUsuarioRepository(database) {
              telefone = $4,
              data_nascimento = $5
          WHERE id = $6
+           AND data_exclusao IS NULL
          RETURNING ${returningFields}`,
         values
       );
@@ -81,16 +98,61 @@ function createPostgresUsuarioRepository(database) {
       return result.rows[0] ?? null;
     },
 
-    async remove(id) {
+    async softDelete(id) {
       const result = await database.query(
-        "DELETE FROM usuarios WHERE id = $1",
+        `UPDATE usuarios
+         SET data_exclusao = CURRENT_TIMESTAMP
+         WHERE id = $1
+           AND data_exclusao IS NULL`,
         [id]
       );
 
       return result.rowCount > 0;
+    },
+
+    async restore(id) {
+      const result = await database.query(
+        `UPDATE usuarios
+         SET data_exclusao = NULL
+         WHERE id = $1
+           AND data_exclusao IS NOT NULL
+         RETURNING ${returningFields}`,
+        [id]
+      );
+
+      return result.rows[0] ?? null;
+    },
+
+    async deactivate(id) {
+      const result = await database.query(
+        `UPDATE usuarios
+         SET ativo = FALSE,
+             data_desativacao = CURRENT_TIMESTAMP
+         WHERE id = $1
+           AND data_exclusao IS NULL
+           AND ativo = TRUE
+         RETURNING ${returningFields}`,
+        [id]
+      );
+
+      return result.rows[0] ?? null;
+    },
+
+    async activate(id) {
+      const result = await database.query(
+        `UPDATE usuarios
+         SET ativo = TRUE,
+             data_desativacao = NULL
+         WHERE id = $1
+           AND data_exclusao IS NULL
+           AND ativo = FALSE
+         RETURNING ${returningFields}`,
+        [id]
+      );
+
+      return result.rows[0] ?? null;
     }
   };
 }
 
 module.exports = createPostgresUsuarioRepository;
-

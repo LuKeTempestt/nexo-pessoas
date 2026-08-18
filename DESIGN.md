@@ -4,7 +4,7 @@
 
 Nexo Pessoas é um produto operacional para pequenas equipes manterem cadastros
 organizados. A interface abandona a aparência de exercício acadêmico e coloca a
-lista de usuários no centro: localizar, cadastrar, corrigir ou remover um registro
+lista de usuários no centro: localizar, cadastrar, corrigir ou ocultar um registro
 deve exigir poucos segundos.
 
 - Atmosfera: sóbria, precisa e confiável.
@@ -41,6 +41,8 @@ Esses conteúdos pertencem ao `README.md` e ao `GUIA_PASSO_A_PASSO.md`.
 | `--color-danger-soft` | `#fff1f0` | Fundo de erro |
 | `--color-success` | `#087a55` | Confirmação e disponibilidade |
 | `--color-success-soft` | `#eaf8f2` | Fundo de sucesso |
+| `--color-warning` | `#b54708` | Usuário desativado e ações reversíveis |
+| `--color-warning-soft` | `#fff4e8` | Fundo de status desativado |
 | `--color-focus` | `#9db4ff` | Anel de foco |
 | `--color-backdrop` | `rgb(17 24 39 / 64%)` | Fundo dos diálogos |
 
@@ -107,13 +109,14 @@ Unidade base: 4px.
 
 ### Faixa de resumo
 
-- Um único painel dividido em três métricas reais: total, cadastrados hoje e
+- Um único painel dividido em três métricas reais: total, usuários ativos e
   disponibilidade do sistema.
 - Sem cartões de vaidade, gráficos inventados ou números simulados.
 
 ### Painel de dados
 
 - Trilho cobalto no topo, barra de ferramentas e tabela integrados.
+- Abas “Ativos” e “Ocultos” tornam a exclusão lógica visível e reversível.
 - Profundidade: borda mais sombra curta e difusa.
 - Estados: carregando, vazio, sem resultados, preenchido e erro.
 
@@ -121,6 +124,8 @@ Unidade base: 4px.
 
 - Desktop: tabela com avatar de iniciais, ID, contato, CPF, telefone, nascimento,
   cadastro e ações.
+- Status “Ativo” ou “Desativado” aparece junto ao ID; ativação, desativação e
+  ocultação são ações diferentes.
 - Móvel: cada linha vira um cartão rotulado; ações ocupam a largura disponível.
 - Acessibilidade: `caption`, cabeçalhos `scope="col"` e ações nomeadas.
 
@@ -133,7 +138,8 @@ Unidade base: 4px.
 ### Toast e confirmação
 
 - Toast fixo no canto superior direito para sucesso e erro, com região anunciável.
-- Exclusão usa diálogo separado e ação destrutiva explícita.
+- Ocultação usa diálogo separado, explica a preservação e oferece restauração
+  na aba de usuários ocultos.
 - Entrada por opacidade e escala, respeitando movimento reduzido.
 
 ## 6. Movimento e interação

@@ -40,6 +40,7 @@ async function request<T>(path = "", options: RequestInit = {}): Promise<T> {
 
 export const usersApi = {
   list: () => request<User[]>(),
+  listHidden: () => request<User[]>("/ocultos"),
   create: (user: UserInput) => request<User>("", {
     method: "POST",
     body: JSON.stringify(user)
@@ -48,5 +49,8 @@ export const usersApi = {
     method: "PUT",
     body: JSON.stringify(user)
   }),
-  remove: (id: string) => request<void>(`/${id}`, { method: "DELETE" })
+  hide: (id: string) => request<void>(`/${id}`, { method: "DELETE" }),
+  restore: (id: string) => request<User>(`/${id}/restaurar`, { method: "PATCH" }),
+  deactivate: (id: string) => request<User>(`/${id}/desativar`, { method: "PATCH" }),
+  activate: (id: string) => request<User>(`/${id}/ativar`, { method: "PATCH" })
 };

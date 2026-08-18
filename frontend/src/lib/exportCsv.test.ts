@@ -11,7 +11,10 @@ describe("usersToCsv", () => {
       cpf: "52998224725",
       telefone: "11999999999",
       dataNascimento: "1995-03-15",
-      dataCadastro: "2026-08-18T14:00:00.000Z"
+      dataCadastro: "2026-08-18T14:00:00.000Z",
+      ativo: false,
+      dataDesativacao: "2026-08-18T15:00:00.000Z",
+      dataExclusao: null
     };
 
     const csv = usersToCsv([user]);
@@ -19,5 +22,6 @@ describe("usersToCsv", () => {
     expect(csv).toContain('"ID";"Nome";"E-mail"');
     expect(csv).toContain('"Maria ""Mia"" Silva"');
     expect(csv).toContain('"529.982.247-25"');
+    expect(csv).toContain('"Desativado"');
   });
 });

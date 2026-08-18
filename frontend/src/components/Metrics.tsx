@@ -1,9 +1,9 @@
 type MetricsProps = {
-  total: number;
-  createdToday: number;
+  readonly total: number;
+  readonly active: number;
 };
 
-export function Metrics({ total, createdToday }: MetricsProps) {
+export function Metrics({ total, active }: MetricsProps) {
   return (
     <section className="overview" aria-label="Resumo dos usuários">
       <div className="metric">
@@ -11,8 +11,8 @@ export function Metrics({ total, createdToday }: MetricsProps) {
         <strong className="metric__value">{total}</strong>
       </div>
       <div className="metric">
-        <span className="metric__label">Cadastrados hoje</span>
-        <strong className="metric__value">{createdToday}</strong>
+        <span className="metric__label">Usuários ativos</span>
+        <strong className="metric__value">{active}</strong>
       </div>
       <div className="metric metric--status">
         <span className="metric__label">Disponibilidade</span>

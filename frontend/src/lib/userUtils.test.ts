@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { User } from "../types/user";
-import { countCreatedToday, filterUsers, sortUsers } from "./userUtils";
+import { countActiveUsers, countCreatedToday, filterUsers, sortUsers } from "./userUtils";
 
 const users: User[] = [
   {
@@ -10,7 +10,10 @@ const users: User[] = [
     cpf: "52998224725",
     telefone: "11999999999",
     dataNascimento: "1990-01-02",
-    dataCadastro: "2026-08-18T14:00:00.000Z"
+    dataCadastro: "2026-08-18T14:00:00.000Z",
+    ativo: true,
+    dataDesativacao: null,
+    dataExclusao: null
   },
   {
     id: "1",
@@ -19,7 +22,10 @@ const users: User[] = [
     cpf: "16899535009",
     telefone: "21988887777",
     dataNascimento: "1992-03-04",
-    dataCadastro: "2026-08-17T14:00:00.000Z"
+    dataCadastro: "2026-08-17T14:00:00.000Z",
+    ativo: false,
+    dataDesativacao: "2026-08-18T16:00:00.000Z",
+    dataExclusao: null
   }
 ];
 
@@ -40,5 +46,26 @@ describe("userUtils", () => {
 
   it("conta cadastros feitos no dia informado", () => {
     expect(countCreatedToday(users, new Date("2026-08-18T18:00:00.000Z"))).toBe(1);
+  });
+
+  it("conta somente usuários ativos", () => {
+    expect(countActiveUsers(users)).toBe(1);
+  });
+
+  it("ordena ocultos pela data de exclusão", () => {
+    const hiddenUsers: User[] = [
+      {
+        ...users[0],
+        dataCadastro: "2026-08-18T14:00:00.000Z",
+        dataExclusao: "2026-08-18T15:00:00.000Z"
+      },
+      {
+        ...users[1],
+        dataCadastro: "2026-08-17T14:00:00.000Z",
+        dataExclusao: "2026-08-18T16:00:00.000Z"
+      }
+    ];
+
+    expect(sortUsers(hiddenUsers, "recent")[0].id).toBe("1");
   });
 });

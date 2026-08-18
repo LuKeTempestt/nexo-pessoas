@@ -10,7 +10,8 @@ Siga o `README.md`, abra `http://localhost:5173` e faça quatro operações:
 1. cadastre um usuário;
 2. busque esse usuário;
 3. edite o telefone;
-4. exclua o registro.
+4. desative e reative o usuário;
+5. oculte o registro e depois o restaure.
 
 O caminho do cadastro é:
 
@@ -65,7 +66,19 @@ mesmo tempo. Arquivo gigante parece produtivo até precisar ser testado.
 | Consultar | `GET` | `/api/usuarios/:id` | `200` |
 | Cadastrar | `POST` | `/api/usuarios` | `201` |
 | Atualizar | `PUT` | `/api/usuarios/:id` | `200` |
-| Excluir | `DELETE` | `/api/usuarios/:id` | `204` |
+| Ocultar | `DELETE` | `/api/usuarios/:id` | `204` |
+| Listar ocultos | `GET` | `/api/usuarios/ocultos` | `200` |
+| Restaurar | `PATCH` | `/api/usuarios/:id/restaurar` | `200` |
+| Desativar | `PATCH` | `/api/usuarios/:id/desativar` | `200` |
+| Ativar | `PATCH` | `/api/usuarios/:id/ativar` | `200` |
+
+O método continua sendo `DELETE` porque essa é a operação do contrato REST. A
+implementação usa `UPDATE data_exclusao = CURRENT_TIMESTAMP`: a API oculta o
+recurso sem destruir a linha.
+
+Desativar é diferente de ocultar. O usuário desativado permanece na listagem com
+um status visível. A operação atualiza `ativo` e `data_desativacao`; a restrição
+do PostgreSQL impede combinações incoerentes entre esses campos.
 
 Abra o navegador, pressione `F12`, entre em **Network** e repita uma operação.
 Inspecione `Request Payload`, `Status Code` e `Response`.
@@ -99,7 +112,7 @@ A função `request` centraliza:
 Depois volte a `App.tsx` e procure `useQuery` e `useMutation`:
 
 - `useQuery` busca e guarda a lista em cache;
-- `useMutation` cria, atualiza ou exclui;
+- `useMutation` cria, atualiza, oculta ou restaura;
 - `invalidateQueries` marca a lista como desatualizada e busca dados novos.
 
 ## 7. Estude o formulário tipado
@@ -133,7 +146,7 @@ Leia `frontend/src/components` nesta ordem:
 2. `Topbar.tsx` e `Metrics.tsx` — componentes de apresentação;
 3. `UserDataPanel.tsx` — tabela e controles;
 4. `UserFormDialog.tsx` — criação e edição;
-5. `ConfirmDialog.tsx` e `Toast.tsx` — retornos das ações.
+5. `ConfirmDialog.tsx` e `Toast.tsx` — ocultação, restauração e retornos.
 
 Os tokens, cores, espaçamentos e estados estão documentados em `DESIGN.md` e
 implementados em `frontend/src/styles.css`.
@@ -175,7 +188,7 @@ Faça um por vez e escreva um teste antes da alteração:
 1. mova a paginação para a API;
 2. adicione filtro por faixa de idade;
 3. implemente autenticação e autorização;
-4. registre auditoria de criação, edição e exclusão;
+4. registre quem criou, editou, ocultou ou restaurou cada usuário;
 5. crie uma página de detalhes do usuário;
 6. adicione testes de componentes com Testing Library;
 7. publique interface, API e banco em serviços de nuvem.
@@ -195,6 +208,7 @@ uma história de sofrimento; o Git merece fatos.
 - preencha autor e link do repositório no `README.md`;
 - confirme que `backend/.env` não aparece no Git;
 - execute `npm run typecheck`, `npm test` e `npm run build`;
-- teste cadastro, busca, edição, exportação e exclusão;
+- teste cadastro, busca, edição, exportação, ativação, desativação, ocultação e
+  restauração;
 - confira desktop e celular;
 - publique apenas depois de testar o build de produção.
