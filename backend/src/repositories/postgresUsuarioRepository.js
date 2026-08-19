@@ -13,6 +13,40 @@ function createPostgresUsuarioRepository(database) {
   `;
 
   return {
+    async findPage({ hidden, query, sort, limit, offset }) {
+      const hiddenClause = hidden
+        ? "data_exclusao IS NOT NULL"
+        : "data_exclusao IS NULL";
+      const orderBy = {
+        recent: hidden ? "data_exclusao DESC" : "id DESC",
+        oldest: hidden ? "data_exclusao ASC" : "id ASC",
+        "name-asc": "nome ASC, id DESC",
+        "name-desc": "nome DESC, id DESC"
+      }[sort] ?? "id DESC";
+      const pattern = `%${query}%`;
+      const filter = `
+        ${hiddenClause}
+        AND (nome ILIKE $1 OR email ILIKE $1 OR cpf ILIKE $1
+          OR telefone ILIKE $1 OR id::text ILIKE $1)`;
+      const count = await database.query(
+        `SELECT COUNT(*)::int AS total FROM usuarios WHERE ${filter}`, [pattern]
+      );
+      const result = await database.query(
+        `SELECT ${returningFields} FROM usuarios WHERE ${filter}
+         ORDER BY ${orderBy} LIMIT $2 OFFSET $3`, [pattern, limit, offset]
+      );
+      return { items: result.rows, total: Number(count.rows[0].total) };
+    },
+
+    async summary() {
+      const result = await database.query(`
+        SELECT COUNT(*) FILTER (WHERE data_exclusao IS NULL)::int AS total,
+               COUNT(*) FILTER (WHERE data_exclusao IS NULL AND ativo)::int AS active,
+               COUNT(*) FILTER (WHERE data_exclusao IS NOT NULL)::int AS hidden
+        FROM usuarios
+      `);
+      return result.rows[0];
+    },
     async findAll() {
       const result = await database.query(`
         SELECT ${returningFields}
@@ -108,6 +142,15 @@ function createPostgresUsuarioRepository(database) {
       );
 
       return result.rowCount > 0;
+    },
+
+    async permanentDelete(id) {
+      const result = await database.query(
+        `DELETE FROM usuarios
+         WHERE id = $1 AND data_exclusao IS NOT NULL
+         RETURNING id, nome, email`, [id]
+      );
+      return result.rows[0] ?? null;
     },
 
     async restore(id) {

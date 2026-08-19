@@ -82,6 +82,18 @@ svg { display: block; }
 .button--restore-icon { color: var(--color-success); }
 .button--status-off { color: var(--color-warning); }
 
+.login-page, .loading-screen { display: grid; min-height: 100dvh; padding: var(--space-6); background: var(--color-surface-muted); place-items: center; }
+.login-card { display: grid; width: min(420px, 100%); gap: var(--space-5); padding: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-dialog); background: var(--color-surface); box-shadow: var(--shadow-dialog); }
+.login-card h1, .login-card p { margin: 0; }
+.login-card p { color: var(--color-ink-muted); }
+.login-card label, .danger-confirm { display: grid; gap: var(--space-2); font-size: .8125rem; font-weight: 700; }
+.login-card input, .danger-confirm input { height: 42px; padding-inline: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+.login-error { padding: var(--space-3); border-radius: var(--radius-control); color: var(--color-danger); background: var(--color-danger-soft); font-size: .8125rem; }
+.operator-menu { display: flex; align-items: center; gap: var(--space-3); }
+.operator-menu > span { display: grid; text-align: right; font-size: .8125rem; }
+.operator-menu small { color: var(--color-ink-muted); font-size: .6875rem; }
+.danger-confirm { margin-top: var(--space-5); }
+
 .overview { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: var(--space-6); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--color-surface); }
 .metric { display: grid; gap: var(--space-1); min-height: 88px; align-content: center; padding: var(--space-4) var(--space-6); border-right: 1px solid var(--color-border); }
 .metric:last-child { border-right: 0; }

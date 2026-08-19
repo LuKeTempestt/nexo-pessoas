@@ -1,6 +1,8 @@
-import { Activity } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { Button } from "./Button";
+import type { Operator } from "../types/user";
 
-export function Topbar() {
+export function Topbar({ operator, onLogout }: { readonly operator: Operator; readonly onLogout: () => void }) {
   return (
     <header className="topbar">
       <div className="shell topbar__content">
@@ -12,9 +14,9 @@ export function Topbar() {
           <span>Nexo Pessoas</span>
         </a>
 
-        <div className="service-status" aria-label="Status do sistema">
-          <Activity size={15} aria-hidden="true" />
-          <span>Sistema disponível</span>
+        <div className="operator-menu">
+          <span><strong>{operator.nome}</strong><small>{operator.role}</small></span>
+          <Button variant="icon" type="button" title="Sair" aria-label="Sair" onClick={onLogout}><LogOut size={16} /></Button>
         </div>
       </div>
     </header>

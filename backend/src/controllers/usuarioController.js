@@ -2,7 +2,7 @@ function createUsuarioController(service) {
   return {
     async listar(request, response, next) {
       try {
-        const users = await service.listar();
+        const users = await service.listar(request.query);
         response.status(200).json(users);
       } catch (error) {
         next(error);
@@ -11,11 +11,17 @@ function createUsuarioController(service) {
 
     async listarOcultos(request, response, next) {
       try {
-        const users = await service.listarOcultos();
+        const users = await service.listarOcultos(request.query);
         response.status(200).json(users);
       } catch (error) {
         next(error);
       }
+    },
+
+    async resumo(request, response, next) {
+      try {
+        response.status(200).json(await service.resumo());
+      } catch (error) { next(error); }
     },
 
     async buscarPorId(request, response, next) {
@@ -29,7 +35,7 @@ function createUsuarioController(service) {
 
     async cadastrar(request, response, next) {
       try {
-        const user = await service.cadastrar(request.body);
+        const user = await service.cadastrar(request.body, request.auth?.session.operator);
         response.status(201).json(user);
       } catch (error) {
         next(error);
@@ -40,7 +46,8 @@ function createUsuarioController(service) {
       try {
         const user = await service.atualizar(
           request.params.id,
-          request.body
+          request.body,
+          request.auth?.session.operator
         );
         response.status(200).json(user);
       } catch (error) {
@@ -50,16 +57,26 @@ function createUsuarioController(service) {
 
     async excluir(request, response, next) {
       try {
-        await service.excluir(request.params.id);
+        await service.excluir(request.params.id, request.auth?.session.operator);
         response.status(204).send();
       } catch (error) {
         next(error);
       }
     },
 
+    async excluirPermanentemente(request, response, next) {
+      try {
+        await service.excluirPermanentemente(
+          request.params.id,
+          request.auth?.session.operator
+        );
+        response.status(204).send();
+      } catch (error) { next(error); }
+    },
+
     async restaurar(request, response, next) {
       try {
-        const user = await service.restaurar(request.params.id);
+        const user = await service.restaurar(request.params.id, request.auth?.session.operator);
         response.status(200).json(user);
       } catch (error) {
         next(error);
@@ -68,7 +85,7 @@ function createUsuarioController(service) {
 
     async desativar(request, response, next) {
       try {
-        const user = await service.desativar(request.params.id);
+        const user = await service.desativar(request.params.id, request.auth?.session.operator);
         response.status(200).json(user);
       } catch (error) {
         next(error);
@@ -77,7 +94,7 @@ function createUsuarioController(service) {
 
     async ativar(request, response, next) {
       try {
-        const user = await service.ativar(request.params.id);
+        const user = await service.ativar(request.params.id, request.auth?.session.operator);
         response.status(200).json(user);
       } catch (error) {
         next(error);

@@ -3,6 +3,24 @@
 Este guia ensina o projeto na ordem em que os dados viajam. A explicação fica
 aqui; a interface do produto fica livre para fazer o trabalho dela.
 
+## Evolução para a versão 3
+
+O **front-end** está em `frontend/`: é a parte visível no navegador. O
+**back-end** está em `backend/`: autentica, verifica permissões, aplica regras e
+fala com o PostgreSQL. A pasta `database/` guarda tabelas e migrações.
+
+1. `database/04_adicionar_seguranca_e_auditoria.sql` cria operadores, sessões e auditoria.
+2. `backend/src/services/authService.js` valida credenciais e cria sessões.
+3. `backend/src/middlewares/auth.js` protege rotas e verifica perfil e CSRF.
+4. Busca, ordenação e página chegam à API e viram SQL com `LIMIT` e `OFFSET`.
+5. Ocultar é reversível. Apagar definitivamente exige usuário oculto, confirmação
+   textual e perfil `ADMIN`.
+6. `.github/workflows/ci.yml` valida cada atualização antes do gancho de deploy.
+
+Para criar a primeira conta administrativa, preencha as variáveis `ADMIN_*` em
+`backend/.env` e execute `npm run admin:create -w backend`. Nunca coloque a senha
+real no código ou no Git.
+
 ## 1. Execute e observe
 
 Siga o `README.md`, abra `http://localhost:5173` e faça quatro operações:

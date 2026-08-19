@@ -5,10 +5,14 @@ const database = require("./config/database");
 const createPostgresUsuarioRepository = require(
   "./repositories/postgresUsuarioRepository"
 );
+const createPostgresAuthRepository = require("./repositories/postgresAuthRepository");
+const createPostgresAuditRepository = require("./repositories/postgresAuditRepository");
 
 const port = Number(process.env.PORT) || 3000;
 const repository = createPostgresUsuarioRepository(database);
-const app = createApp({ repository });
+const authRepository = createPostgresAuthRepository(database);
+const auditRepository = createPostgresAuditRepository(database);
+const app = createApp({ repository, authRepository, auditRepository });
 
 async function startServer() {
   try {

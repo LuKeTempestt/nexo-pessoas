@@ -32,6 +32,18 @@ npm run build
 | Repository | persistir com SQL | escolher códigos HTTP |
 | PostgreSQL | integridade e armazenamento | controlar a interface |
 
+## Segurança e perfis
+
+Contas de operação ficam em `operadores`; usuários gerenciados permanecem em
+`usuarios`. Sessões usam token aleatório em cookie `HttpOnly`, enquanto o banco
+guarda somente seu hash. Escritas também exigem token CSRF.
+
+| Perfil | Consulta | Altera | Apaga definitivamente | Auditoria |
+|---|---:|---:|---:|---:|
+| ADMIN | sim | sim | sim | sim |
+| OPERADOR | sim | sim | não | não |
+| AUDITOR | sim | não | não | sim |
+
 ## Exclusão lógica
 
 O endpoint `DELETE /api/usuarios/:id` não executa `DELETE FROM`. Ele registra
@@ -67,11 +79,10 @@ mutação, a consulta `users` é invalidada, evitando sincronização manual fr�
 Mantêm o formulário tipado e reduzem renderizações desnecessárias. O schema do
 front-end melhora o retorno imediato, mas não substitui o validador do servidor.
 
-### Paginação no cliente
+### Paginação no servidor
 
-É suficiente para o escopo atual. Em uma base grande, busca, ordenação e
-paginação devem migrar para parâmetros da API e consultas SQL com `LIMIT` e
-`OFFSET` ou cursor.
+Busca, ordenação e paginação chegam como parâmetros validados. O PostgreSQL usa
+`LIMIT` e `OFFSET`, e a resposta inclui total de registros e páginas.
 
 ### Build servido pelo Express
 
@@ -81,9 +92,8 @@ serviço separado.
 
 ## Próximos passos de produto
 
-1. autenticação e perfis de acesso;
-2. paginação e filtros no servidor;
-3. trilha de auditoria com autor de cada alteração;
-4. observabilidade e logs estruturados;
-5. testes end-to-end no fluxo crítico;
-6. pipeline de integração e publicação contínua.
+1. observabilidade e logs estruturados centralizados;
+2. recuperação de senha por e-mail;
+3. autenticação multifator;
+4. paginação por cursor para bases muito grandes;
+5. deploy em ambiente de homologação antes de produção.

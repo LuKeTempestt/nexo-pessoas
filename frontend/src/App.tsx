@@ -1,20 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { Button } from "./components/Button";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { LoginPage } from "./components/LoginPage";
+import { PermanentDeleteDialog } from "./components/PermanentDeleteDialog";
 import { Metrics } from "./components/Metrics";
 import { Toast, type ToastState } from "./components/Toast";
 import { Topbar } from "./components/Topbar";
 import { UserDataPanel } from "./components/UserDataPanel";
 import { UserFormDialog } from "./components/UserFormDialog";
-import { usersApi } from "./lib/api";
+import { authApi, usersApi } from "./lib/api";
 import { downloadUsersCsv } from "./lib/exportCsv";
-import { countActiveUsers, filterUsers, sortUsers } from "./lib/userUtils";
-import type { SortOption, User, UserInput, UserView } from "./types/user";
+import type { SortOption, User, UserInput, UserPage, UserView } from "./types/user";
 
 const PAGE_SIZE = 8;
-const EMPTY_USERS: User[] = [];
+const EMPTY_PAGE: UserPage = { items: [], page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 };
 
 type SaveVariables = {
   readonly user: User | null;
@@ -31,29 +32,25 @@ export default function App() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [permanentDeletingUser, setPermanentDeletingUser] = useState<User | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  const activeUsersQuery = useQuery({
-    queryKey: ["users", "active"],
-    queryFn: usersApi.list,
+  const sessionQuery = useQuery({ queryKey: ["session"], queryFn: authApi.me, retry: false });
+  const loginMutation = useMutation({
+    mutationFn: ({ email, password }: { readonly email: string; readonly password: string }) => authApi.login(email, password),
+    onSuccess: (session) => queryClient.setQueryData(["session"], session)
+  });
+  const usersQuery = useQuery({
+    queryKey: ["users", view, page, deferredQuery, sort],
+    queryFn: () => usersApi.list(view, page, deferredQuery, sort),
+    enabled: Boolean(sessionQuery.data),
     staleTime: 30_000
   });
-  const hiddenUsersQuery = useQuery({
-    queryKey: ["users", "hidden"],
-    queryFn: usersApi.listHidden,
-    enabled: view === "hidden",
-    staleTime: 30_000
-  });
-
-  const activeUsers = activeUsersQuery.data ?? EMPTY_USERS;
-  const currentQuery = view === "active" ? activeUsersQuery : hiddenUsersQuery;
-  const users = currentQuery.data ?? EMPTY_USERS;
-  const filteredUsers = useMemo(
-    () => sortUsers(filterUsers(users, deferredQuery), sort),
-    [deferredQuery, sort, users]
-  );
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const visibleUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const summaryQuery = useQuery({ queryKey: ["users", "summary"], queryFn: usersApi.summary, enabled: Boolean(sessionQuery.data) });
+  const currentPage = usersQuery.data ?? EMPTY_PAGE;
+  const session = sessionQuery.data;
+  const canWrite = session?.operator.role === "ADMIN" || session?.operator.role === "OPERADOR";
+  const canPermanentDelete = session?.operator.role === "ADMIN";
 
   useEffect(() => {
     setPage(1);
@@ -118,6 +115,21 @@ export default function App() {
     onError: (error: Error) => setToast({ type: "error", text: error.message })
   });
 
+  const permanentDeleteMutation = useMutation({
+    mutationFn: usersApi.permanentDelete,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["users"] });
+      setPermanentDeletingUser(null);
+      setToast({ type: "success", text: "Usuário apagado definitivamente." });
+    },
+    onError: (error: Error) => setToast({ type: "error", text: error.message })
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: authApi.logout,
+    onSuccess: () => { queryClient.clear(); setToast(null); }
+  });
+
   function openCreate() {
     setEditingUser(null);
     setFormOpen(true);
@@ -133,9 +145,14 @@ export default function App() {
     setQuery("");
   }
 
+  if (sessionQuery.isLoading) return <main className="loading-screen">Carregando...</main>;
+  if (!session) {
+    return <LoginPage busy={loginMutation.isPending} error={loginMutation.error instanceof Error ? loginMutation.error.message : null} onLogin={(email, password) => loginMutation.mutate({ email, password })} />;
+  }
+
   return (
     <>
-      <Topbar />
+      <Topbar operator={session.operator} onLogout={() => logoutMutation.mutate()} />
       <main className="shell page">
         <section className="page-heading" aria-labelledby="page-title">
           <div>
@@ -144,31 +161,31 @@ export default function App() {
             <p>Consulte e mantenha os dados das pessoas cadastradas.</p>
           </div>
           <div className="page-heading__actions">
-            <Button
+            {canWrite && <Button
               variant="primary"
               type="button"
               icon={<Plus size={18} aria-hidden="true" />}
               onClick={openCreate}
             >
               Novo usuário
-            </Button>
+            </Button>}
           </div>
         </section>
 
         <Metrics
-          total={activeUsers.length}
-          active={countActiveUsers(activeUsers)}
+          total={summaryQuery.data?.total ?? 0}
+          active={summaryQuery.data?.active ?? 0}
         />
 
         <UserDataPanel
-          users={visibleUsers}
-          totalResults={filteredUsers.length}
+          users={currentPage.items}
+          totalResults={currentPage.total}
           query={query}
           sort={sort}
           page={page}
-          totalPages={totalPages}
-          loading={currentQuery.isLoading || currentQuery.isFetching}
-          error={currentQuery.error instanceof Error ? currentQuery.error.message : null}
+          totalPages={currentPage.totalPages}
+          loading={usersQuery.isLoading || usersQuery.isFetching}
+          error={usersQuery.error instanceof Error ? usersQuery.error.message : null}
           view={view}
           onQueryChange={setQuery}
           onSortChange={setSort}
@@ -178,9 +195,12 @@ export default function App() {
           onHide={setDeletingUser}
           onRestore={(user) => restoreMutation.mutate(user.id)}
           onToggleStatus={(user) => statusMutation.mutate(user)}
+          onPermanentDelete={setPermanentDeletingUser}
+          canWrite={canWrite}
+          canPermanentDelete={canPermanentDelete}
           onViewChange={changeView}
-          onRefresh={() => void currentQuery.refetch()}
-          onExport={() => downloadUsersCsv(filteredUsers)}
+          onRefresh={() => void usersQuery.refetch()}
+          onExport={() => downloadUsersCsv(currentPage.items)}
         />
       </main>
 
@@ -205,6 +225,12 @@ export default function App() {
         onConfirm={() => {
           if (deletingUser) hideMutation.mutate(deletingUser.id);
         }}
+      />
+      <PermanentDeleteDialog
+        user={permanentDeletingUser}
+        busy={permanentDeleteMutation.isPending}
+        onCancel={() => { if (!permanentDeleteMutation.isPending) setPermanentDeletingUser(null); }}
+        onConfirm={() => { if (permanentDeletingUser) permanentDeleteMutation.mutate(permanentDeletingUser.id); }}
       />
       <Toast toast={toast} onClose={() => setToast(null)} />
     </>

@@ -1,12 +1,13 @@
 {
   "name": "crud-usuarios-backend",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "API REST acadêmica para gerenciamento de usuários.",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "admin:create": "node scripts/createAdmin.js",
     "test": "node --test --test-isolation=none",
     "test:watch": "node --test --test-isolation=none --watch"
   },

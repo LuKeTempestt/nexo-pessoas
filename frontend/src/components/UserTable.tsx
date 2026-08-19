@@ -1,4 +1,4 @@
-import { EyeOff, Pencil, Power, PowerOff, RotateCcw } from "lucide-react";
+import { EyeOff, Pencil, Power, PowerOff, RotateCcw, Trash2 } from "lucide-react";
 import { formatCpf, formatDate, formatDateTime, formatPhone, getInitials } from "../lib/formatters";
 import type { User, UserView } from "../types/user";
 import { Button } from "./Button";
@@ -11,6 +11,9 @@ type UserTableProps = {
   readonly onHide: (user: User) => void;
   readonly onRestore: (user: User) => void;
   readonly onToggleStatus: (user: User) => void;
+  readonly onPermanentDelete: (user: User) => void;
+  readonly canWrite: boolean;
+  readonly canPermanentDelete: boolean;
 };
 
 export function UserTable({
@@ -20,7 +23,10 @@ export function UserTable({
   onEdit,
   onHide,
   onRestore,
-  onToggleStatus
+  onToggleStatus,
+  onPermanentDelete,
+  canWrite,
+  canPermanentDelete
 }: UserTableProps) {
   const hiddenView = view === "hidden";
   const dateLabel = hiddenView ? "Ocultado em" : "Cadastrado em";
@@ -76,18 +82,12 @@ export function UserTable({
                   </td>
                   <td className="row-actions" data-label="Ações">
                     {hiddenView ? (
-                      <Button
-                        variant="icon"
-                        className="button--restore-icon"
-                        type="button"
-                        title="Restaurar usuário"
-                        aria-label={`Restaurar ${user.nome}`}
-                        onClick={() => onRestore(user)}
-                      >
-                        <RotateCcw size={17} aria-hidden="true" />
-                      </Button>
-                    ) : (
                       <>
+                        {canWrite && <Button variant="icon" className="button--restore-icon" type="button" title="Restaurar usuário" aria-label={`Restaurar ${user.nome}`} onClick={() => onRestore(user)}><RotateCcw size={17} aria-hidden="true" /></Button>}
+                        {canPermanentDelete && <Button variant="icon" className="button--delete-icon" type="button" title="Apagar definitivamente" aria-label={`Apagar definitivamente ${user.nome}`} onClick={() => onPermanentDelete(user)}><Trash2 size={17} aria-hidden="true" /></Button>}
+                      </>
+                    ) : (
+                      canWrite && <>
                         <Button
                           variant="icon"
                           type="button"

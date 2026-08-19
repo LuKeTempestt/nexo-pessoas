@@ -29,6 +29,9 @@ type UserDataPanelProps = {
   readonly onHide: (user: User) => void;
   readonly onRestore: (user: User) => void;
   readonly onToggleStatus: (user: User) => void;
+  readonly onPermanentDelete: (user: User) => void;
+  readonly canWrite: boolean;
+  readonly canPermanentDelete: boolean;
   readonly onViewChange: (view: UserView) => void;
   readonly onRefresh: () => void;
   readonly onExport: () => void;
@@ -63,6 +66,9 @@ export function UserDataPanel({
   onHide,
   onRestore,
   onToggleStatus,
+  onPermanentDelete,
+  canWrite,
+  canPermanentDelete,
   onViewChange,
   onRefresh,
   onExport
@@ -169,6 +175,9 @@ export function UserDataPanel({
           onHide={onHide}
           onRestore={onRestore}
           onToggleStatus={onToggleStatus}
+          onPermanentDelete={onPermanentDelete}
+          canWrite={canWrite}
+          canPermanentDelete={canPermanentDelete}
         />
       ) : null}
 
@@ -193,7 +202,9 @@ export function UserDataPanel({
             ? <Button type="button" onClick={() => onQueryChange("")}>Limpar busca</Button>
             : hiddenView
               ? null
-              : <Button type="button" onClick={onCreate}>Cadastrar usuário</Button>}
+              : canWrite
+                ? <Button type="button" onClick={onCreate}>Cadastrar usuário</Button>
+                : null}
         </div>
       ) : null}
 

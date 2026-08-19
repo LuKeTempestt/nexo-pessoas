@@ -101,8 +101,24 @@ function parseId(input) {
   return id;
 }
 
+function parseListInput(input = {}) {
+  const page = Number(input.page ?? 1);
+  const pageSize = Number(input.pageSize ?? 10);
+  const query = String(input.query ?? "").trim().slice(0, 120);
+  const allowedSorts = new Set(["recent", "oldest", "name-asc", "name-desc"]);
+  const sort = allowedSorts.has(input.sort) ? input.sort : "recent";
+  if (!Number.isSafeInteger(page) || page < 1) {
+    throw new AppError("A página informada é inválida.", 400);
+  }
+  if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+    throw new AppError("O tamanho da página deve ficar entre 1 e 100.", 400);
+  }
+  return Object.freeze({ page, pageSize, query, sort });
+}
+
 module.exports = {
   validarCpf,
   parseUsuarioInput,
-  parseId
+  parseId,
+  parseListInput
 };
