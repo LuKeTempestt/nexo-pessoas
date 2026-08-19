@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "admin:create": "node scripts/createAdmin.js",
     "test": "node --test --test-isolation=none",
+    "test:ci": "node --test",
     "test:watch": "node --test --test-isolation=none --watch"
   },
   "engines": {

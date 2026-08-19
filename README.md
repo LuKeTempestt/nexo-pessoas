@@ -176,6 +176,9 @@ npm test
 npm run build
 ```
 
+No GitHub Actions, `npm run test:ci` usa o isolamento nativo do Linux. O comando
+local mantém uma opção compatível com a restrição de criação de processos deste Windows.
+
 Os comandos verificam tipos, regras de negócio, rotas HTTP, validadores,
 formatadores, busca, ordenação e build de produção.
 

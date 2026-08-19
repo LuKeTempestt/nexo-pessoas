@@ -12,6 +12,7 @@
     "build": "npm run build -w frontend",
     "start": "npm run start -w backend",
     "test": "npm run test -w backend && npm run test -w frontend",
+    "test:ci": "npm run test:ci -w backend && npm run test -w frontend",
     "typecheck": "npm run typecheck -w frontend"
   },
   "devDependencies": {
