@@ -1,21 +1,109 @@
+name: crud-usuarios
+
 services:
   database:
     image: postgres:17-alpine
-    container_name: crud-usuarios-db
     environment:
-      POSTGRES_DB: crud_usuarios
-      POSTGRES_USER: crud_app
-      POSTGRES_PASSWORD: crud_dev_password
+      POSTGRES_DB: ${DB_NAME:-crud_usuarios}
+      POSTGRES_USER: ${DB_USER:-crud_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-crud_dev_password}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/01_criar_tabela.sql:/docker-entrypoint-initdb.d/01_criar_tabela.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U crud_app -d crud_usuarios"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-crud_app} -d ${DB_NAME:-crud_usuarios}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
+    restart: unless-stopped
+    networks: [data]
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    networks: [data]
+
+  migrate:
+    image: postgres:17-alpine
+    environment:
+      PGHOST: database
+      PGPORT: 5432
+      PGDATABASE: ${DB_NAME:-crud_usuarios}
+      PGUSER: ${DB_USER:-crud_app}
+      PGPASSWORD: ${DB_PASSWORD:-crud_dev_password}
+    volumes:
+      - ./database:/migrations:ro
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        for file in
+        /migrations/01_criar_tabela.sql
+        /migrations/02_adicionar_exclusao_logica.sql
+        /migrations/03_adicionar_status_usuario.sql
+        /migrations/04_adicionar_seguranca_e_auditoria.sql;
+        do echo "Aplicando $${file}" && psql --set ON_ERROR_STOP=1 --file "$${file}";
+        done
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+    networks: [data]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      SESSION_COOKIE_SECURE: "false"
+      SETUP_MODE: local
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-crud_usuarios}
+      DB_USER: ${DB_USER:-crud_app}
+      DB_PASSWORD: ${DB_PASSWORD:-crud_dev_password}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/api/saude/prontidao').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks: [web, data]
+
+networks:
+  web:
+  data:
+    internal: true
 
 volumes:
   postgres_data:

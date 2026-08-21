@@ -3,7 +3,7 @@
 Este guia ensina o projeto na ordem em que os dados viajam. A explicação fica
 aqui; a interface do produto fica livre para fazer o trabalho dela.
 
-## Evolução para a versão 3
+## Evolução para a versão 4
 
 O **front-end** está em `frontend/`: é a parte visível no navegador. O
 **back-end** está em `backend/`: autentica, verifica permissões, aplica regras e
@@ -17,19 +17,21 @@ fala com o PostgreSQL. A pasta `database/` guarda tabelas e migrações.
    textual e perfil `ADMIN`.
 6. `.github/workflows/ci.yml` valida cada atualização antes do gancho de deploy.
 
-Para criar a primeira conta administrativa, preencha as variáveis `ADMIN_*` em
-`backend/.env` e execute `npm run admin:create -w backend`. Nunca coloque a senha
-real no código ou no Git.
+7. `compose.yaml` inicia aplicação, PostgreSQL, migrações e Redis.
+8. A própria tela inicial cria o primeiro administrador. Não há credenciais
+   padrão, e senhas reais nunca devem entrar no código ou no Git.
 
 ## 1. Execute e observe
 
-Siga o `README.md`, abra `http://localhost:5173` e faça quatro operações:
+Para o caminho mais simples, execute `docker compose up --build -d`, abra
+`http://localhost:3000`, crie o primeiro administrador e faça as operações:
 
 1. cadastre um usuário;
 2. busque esse usuário;
 3. edite o telefone;
 4. desative e reative o usuário;
-5. oculte o registro e depois o restaure.
+5. oculte o registro e depois o restaure;
+6. como ADMIN, crie uma conta em “Equipe e acessos” e altere seu perfil.
 
 O caminho do cadastro é:
 
@@ -106,8 +108,10 @@ Inspecione `Request Payload`, `Status Code` e `Response`.
 Leia:
 
 1. `frontend/src/main.tsx`;
-2. `frontend/src/App.tsx`;
-3. `frontend/src/types/user.ts`.
+2. `frontend/src/App.tsx` — configuração, sessão e navegação;
+3. `frontend/src/components/UsersWorkspace.tsx` — CRUD de usuários;
+4. `frontend/src/components/TeamPage.tsx` — contas e permissões;
+5. `frontend/src/types/user.ts`.
 
 `main.tsx` cria a aplicação e fornece o `QueryClient`. `App.tsx` coordena os
 estados da página. `user.ts` define o formato que TypeScript espera dos dados.
@@ -127,7 +131,8 @@ A função `request` centraliza:
 - mensagens de erro;
 - tratamento da resposta `204`, que não possui corpo.
 
-Depois volte a `App.tsx` e procure `useQuery` e `useMutation`:
+Depois procure `useQuery` e `useMutation` em `App.tsx`, `UsersWorkspace.tsx` e
+`TeamPage.tsx`:
 
 - `useQuery` busca e guarda a lista em cache;
 - `useMutation` cria, atualiza, oculta ou restaura;
@@ -151,10 +156,9 @@ experiência; validação no servidor protege o sistema.
 Abra `frontend/src/lib/userUtils.ts` e depois
 `frontend/src/components/UserDataPanel.tsx`.
 
-- A busca remove acentos e pontuação para comparar dados.
-- A ordenação cria uma cópia do array, preservando o estado original.
-- A paginação usa `slice` para exibir oito registros por página.
-- `useDeferredValue` mantém a digitação responsiva durante a filtragem.
+- A API valida os parâmetros de busca, ordenação e página.
+- O repositório executa `LIMIT` e `OFFSET` no PostgreSQL.
+- `useDeferredValue` mantém a digitação responsiva antes da nova consulta.
 
 ## 9. Estude os componentes visuais
 
@@ -164,7 +168,8 @@ Leia `frontend/src/components` nesta ordem:
 2. `Topbar.tsx` e `Metrics.tsx` — componentes de apresentação;
 3. `UserDataPanel.tsx` — tabela e controles;
 4. `UserFormDialog.tsx` — criação e edição;
-5. `ConfirmDialog.tsx` e `Toast.tsx` — ocultação, restauração e retornos.
+5. `SetupPage.tsx` e `TeamPage.tsx` — primeiro acesso e gestão da equipe;
+6. `ConfirmDialog.tsx` e `Toast.tsx` — ocultação, restauração e retornos.
 
 Os tokens, cores, espaçamentos e estados estão documentados em `DESIGN.md` e
 implementados em `frontend/src/styles.css`.
@@ -188,6 +193,10 @@ No front-end:
 - formatadores provam máscaras e datas;
 - `userSchema` prova o formulário;
 - `userUtils` prova busca, ordenação e métricas.
+- `operatorSchema` e `SetupPage` provam o primeiro acesso e as contas individuais.
+
+O teste Docker é diferente: `docker compose up --build -d` prova a imagem,
+as migrações, as dependências e os healthchecks trabalhando em conjunto.
 
 Rode também:
 
@@ -203,13 +212,12 @@ versão de produção pode ser gerada. São verificações diferentes.
 
 Faça um por vez e escreva um teste antes da alteração:
 
-1. mova a paginação para a API;
-2. adicione filtro por faixa de idade;
-3. implemente autenticação e autorização;
-4. registre quem criou, editou, ocultou ou restaurou cada usuário;
-5. crie uma página de detalhes do usuário;
-6. adicione testes de componentes com Testing Library;
-7. publique interface, API e banco em serviços de nuvem.
+1. adicione filtro por faixa de idade;
+2. crie uma página de detalhes do usuário;
+3. adicione paginação por cursor;
+4. crie um painel de auditoria para ADMIN e AUDITOR;
+5. adicione métricas e logs estruturados usando ferramentas gratuitas;
+6. migre a API para Python/FastAPI preservando os mesmos testes de contrato.
 
 ## 12. Versione com intenção
 
@@ -226,7 +234,7 @@ uma história de sofrimento; o Git merece fatos.
 - preencha autor e link do repositório no `README.md`;
 - confirme que `backend/.env` não aparece no Git;
 - execute `npm run typecheck`, `npm test` e `npm run build`;
-- teste cadastro, busca, edição, exportação, ativação, desativação, ocultação e
-  restauração;
+- teste primeiro acesso, gestão de equipe, cadastro, busca, edição, exportação,
+  ativação, desativação, ocultação, restauração e exclusão permanente;
 - confira desktop e celular;
 - publique apenas depois de testar o build de produção.

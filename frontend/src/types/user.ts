@@ -32,6 +32,18 @@ export type UserSummary = { readonly total: number; readonly active: number; rea
 export type OperatorRole = "ADMIN" | "OPERADOR" | "AUDITOR";
 export type Operator = {
   readonly id: string; readonly nome: string; readonly email: string;
-  readonly role: OperatorRole; readonly ativo: boolean;
+  readonly role: OperatorRole; readonly ativo: boolean; readonly dataCadastro?: string;
 };
 export type Session = { readonly operator: Operator; readonly csrfToken: string };
+export type OperatorInput = {
+  readonly nome: string;
+  readonly email: string;
+  readonly password: string;
+  readonly role: OperatorRole;
+};
+export type SetupStatus = {
+  readonly available: boolean;
+  readonly requiresToken: boolean;
+  readonly configured: boolean;
+};
+export type AppSection = "users" | "team";

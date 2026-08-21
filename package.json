@@ -1,6 +1,6 @@
 {
   "name": "nexo-pessoas",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
   "description": "Produto full stack para gerenciamento de usuários.",
   "workspaces": [
@@ -13,7 +13,10 @@
     "start": "npm run start -w backend",
     "test": "npm run test -w backend && npm run test -w frontend",
     "test:ci": "npm run test:ci -w backend && npm run test -w frontend",
-    "typecheck": "npm run typecheck -w frontend"
+    "typecheck": "npm run typecheck -w frontend",
+    "docker:up": "docker compose up --build -d",
+    "docker:logs": "docker compose logs -f app",
+    "docker:down": "docker compose down"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"

@@ -18,8 +18,13 @@ perfis de acesso, auditoria e persistência PostgreSQL.
 - Ativação e desativação sem retirar o usuário da lista principal.
 - Exclusão permanente opcional, restrita a administradores e somente após ocultação.
 - Login seguro e perfis `ADMIN`, `OPERADOR` e `AUDITOR`.
+- Configuração inicial guiada pela própria aplicação, sem credenciais padrão.
+- Área administrativa para criar contas individuais, trocar perfil, ativar ou
+  desativar acessos, redefinir senhas e revogar sessões.
 - Paginação, busca e ordenação executadas no servidor.
 - Trilha de auditoria para todas as alterações de usuários.
+- Redis para limitar tentativas de autenticação de forma compartilhada.
+- Ambiente Docker completo com aplicação, PostgreSQL, Redis, migrações e healthchecks.
 - Pipeline no GitHub Actions com tipos, testes, build e gancho de deploy.
 - Confirmação para ocultação, mensagens de retorno e navegação por teclado.
 - Layout responsivo em tabela no desktop e cartões no celular.
@@ -39,7 +44,8 @@ perfis de acesso, auditoria e persistência PostgreSQL.
 
 - Node.js 22 e Express 5.
 - PostgreSQL 17 e driver `pg`.
-- Docker Compose para o banco local.
+- Redis 8 para controles temporários de segurança.
+- Docker Compose para executar toda a solução localmente.
 - `node:test` e Supertest para testes de unidade e integração.
 
 ## Qual é o front-end e qual é o back-end?
@@ -80,6 +86,7 @@ crud-usuarios/
 │   │   ├── controllers/     # Entrada e saída HTTP
 │   │   ├── errors/          # Erros conhecidos
 │   │   ├── middlewares/     # Tratamento central de erros
+│   │   ├── infrastructure/  # Integrações, como o limitador Redis
 │   │   ├── repositories/    # Consultas SQL
 │   │   ├── routes/          # Rotas REST
 │   │   ├── services/        # Regras de negócio
@@ -101,7 +108,54 @@ crud-usuarios/
 └── package.json
 ```
 
-## Como executar em desenvolvimento
+## Execução mais simples: Docker
+
+Esse é o caminho recomendado para conhecer o produto. Ele exige apenas o
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) e não requer
+conta em nuvem, serviço pago, Node.js ou PostgreSQL instalados na máquina.
+
+Na pasta do projeto, execute:
+
+```powershell
+docker compose up --build -d
+```
+
+Depois, abra [http://localhost:3000](http://localhost:3000). No primeiro acesso,
+a própria aplicação solicitará nome, e-mail e senha do administrador. Não há
+login ou senha padrão no repositório.
+
+Para conferir a saúde dos serviços e encerrar a aplicação:
+
+```powershell
+docker compose ps
+docker compose down
+```
+
+`docker compose down` preserva os dados. O volume PostgreSQL só é removido com
+`docker compose down -v`; esse segundo comando apaga o banco local e não deve ser
+usado quando houver dados importantes.
+
+### O que o Docker inicia
+
+| Serviço | Responsabilidade |
+|---|---|
+| `app` | Front-end React compilado e API Express, na porta `3000` |
+| `database` | PostgreSQL persistente, disponível localmente na porta `5433` |
+| `redis` | Limitação compartilhada de tentativas de login, sem porta pública |
+| `migrate` | Aplica os scripts SQL e encerra após a conclusão |
+
+Os serviços usam healthchecks e dependências explícitas. A aplicação roda como
+usuário sem privilégios, sem capacidades Linux e com o sistema de arquivos do
+contêiner em modo somente leitura.
+
+Se a porta `3000` estiver ocupada, escolha outra sem editar arquivos:
+
+```powershell
+$env:APP_PORT=3001
+docker compose up --build -d
+```
+
+## Desenvolvimento sem Docker para a aplicação
 
 ### Pré-requisitos
 
@@ -126,28 +180,16 @@ $env:NODE_OPTIONS='--use-system-ca'
 npm install
 ```
 
-### 2. Inicie o banco e aplique as migrações
+### 2. Inicie as dependências
 
 ```powershell
-docker compose up -d database
-Get-Content -Raw database/04_adicionar_seguranca_e_auditoria.sql | docker exec -i crud-usuarios-db psql -U crud_app -d crud_usuarios
+docker compose up -d database redis
 ```
 
 O PostgreSQL é publicado na porta `5433` para evitar conflito com instalações
 locais que usam `5432`.
 
-### 3. Crie o primeiro administrador
-
-Edite `backend/.env` e defina `ADMIN_NAME`, `ADMIN_EMAIL` e uma senha com pelo
-menos 12 caracteres. Depois execute:
-
-```powershell
-npm run admin:create -w backend
-```
-
-A senha é transformada em hash com `scrypt`; ela não é salva em texto puro.
-
-### 4. Inicie front-end e API
+### 3. Inicie front-end e API
 
 ```powershell
 npm run dev
@@ -157,6 +199,8 @@ npm run dev
 - API Express: `http://localhost:3000`
 
 O Vite encaminha chamadas `/api` para o Express durante o desenvolvimento.
+Abra a interface e crie o primeiro administrador pela tela. A senha é
+transformada em hash com `scrypt`; ela não é salva em texto puro.
 
 ## Como executar o build de produção
 
@@ -187,6 +231,9 @@ formatadores, busca, ordenação e build de produção.
 | Método | Rota | Sucesso | Descrição |
 |---|---|---:|---|
 | `GET` | `/api/saude` | `200` | Verifica a API |
+| `GET` | `/api/saude/prontidao` | `200` | Verifica API, PostgreSQL e Redis |
+| `GET` | `/api/setup/status` | `200` | Informa se falta criar o primeiro administrador |
+| `POST` | `/api/setup/administrator` | `201` | Cria o primeiro ADMIN uma única vez |
 | `POST` | `/api/auth/login` | `200` | Inicia sessão |
 | `GET` | `/api/auth/me` | `200` | Consulta a sessão |
 | `POST` | `/api/auth/logout` | `204` | Encerra a sessão |
@@ -201,6 +248,13 @@ formatadores, busca, ordenação e build de produção.
 | `PATCH` | `/api/usuarios/:id/ativar` | `200` | Reativa usuário desativado |
 | `DELETE` | `/api/usuarios/:id/permanente` | `204` | Apaga usuário oculto; somente ADMIN |
 | `GET` | `/api/auditoria` | `200` | Consulta eventos; ADMIN e AUDITOR |
+| `GET` | `/api/operadores` | `200` | Lista contas de acesso; somente ADMIN |
+| `POST` | `/api/operadores` | `201` | Cria conta individual; somente ADMIN |
+| `PATCH` | `/api/operadores/:id/perfil` | `200` | Altera perfil e revoga sessões |
+| `PATCH` | `/api/operadores/:id/ativar` | `200` | Ativa uma conta de acesso |
+| `PATCH` | `/api/operadores/:id/desativar` | `200` | Desativa uma conta e revoga sessões |
+| `PATCH` | `/api/operadores/:id/senha` | `200` | Redefine senha e revoga sessões |
+| `DELETE` | `/api/operadores/:id/sessoes` | `204` | Encerra sessões da conta |
 
 As listagens aceitam `page`, `pageSize`, `query` e `sort`. Operações de escrita
 exigem sessão válida, permissão adequada e o cabeçalho de proteção CSRF.
@@ -240,8 +294,13 @@ Exemplo de corpo:
 - A exclusão permanente só aceita registros previamente ocultados e não pode ser desfeita.
 - Cookies de sessão são `HttpOnly`, `SameSite=Lax` e `Secure` em produção.
 - Senhas usam `scrypt`; tokens de sessão são aleatórios e persistidos apenas como hash.
+- Não existem credenciais padrão, compartilhadas ou publicadas no GitHub.
+- O primeiro administrador é criado uma única vez; em produção, o fluxo exige
+  um `SETUP_TOKEN` secreto definido no ambiente da hospedagem.
+- O último administrador ativo e a própria conta autenticada são protegidos
+  contra desativação ou rebaixamento acidental.
 - Escritas exigem token CSRF e permissões verificadas no servidor.
-- Tentativas repetidas de login são limitadas.
+- Tentativas repetidas de login são limitadas no Redis entre instâncias.
 - Cabeçalhos CSP, anti-clickjacking e `nosniff` são enviados pelo servidor.
 - Mensagens internas não são expostas ao navegador.
 - React escapa conteúdo textual renderizado por padrão.
@@ -254,6 +313,27 @@ request. Para publicar automaticamente após um push em `main`, configure no
 GitHub o secret `DEPLOY_HOOK_URL` fornecido pela plataforma de hospedagem.
 
 O `Dockerfile` permite publicar o mesmo artefato em serviços compatíveis com contêiner.
+
+## Projeto de portfólio sem custo obrigatório
+
+Todo o fluxo principal funciona localmente com software gratuito. Nenhuma conta
+AWS, Vercel, Neon, Datadog ou outro fornecedor é necessária para executar ou
+avaliar o projeto.
+
+O projeto demonstra, dentro do domínio de um CRUD de usuários:
+
+- API REST, HTTP, JSON, validação e códigos de resposta;
+- PostgreSQL, SQL parametrizado, restrições e migrações;
+- Redis aplicado a um problema real de autenticação;
+- autenticação, autorização por perfil, CSRF e auditoria;
+- React e TypeScript com interface responsiva;
+- Docker multi-stage, Compose, healthchecks, redes e persistência;
+- testes automatizados, Git, CI e build reproduzível.
+
+Python é um requisito central de muitas vagas back-end e ainda não é a linguagem
+desta API. Uma futura migração controlada do Express para FastAPI pode ser feita
+sem mudar o front-end nem o contrato REST; ela deve ser tratada como evolução
+separada, não como tecnologia adicionada apenas para constar.
 
 ## Repositório
 

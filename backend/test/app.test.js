@@ -115,6 +115,21 @@ test("GET /api/saude informa que a API está ativa", async () => {
   assert.deepEqual(response.body, { status: "ok" });
 });
 
+test("GET /api/saude/prontidao informa falha de dependência", async () => {
+  // Given
+  const app = createApp({
+    repository: createMemoryRepository(),
+    async healthCheck() { throw new Error("dependência indisponível"); }
+  });
+
+  // When
+  const response = await request(app).get("/api/saude/prontidao");
+
+  // Then
+  assert.equal(response.statusCode, 503);
+  assert.deepEqual(response.body, { status: "indisponivel" });
+});
+
 test("POST /api/usuarios cadastra um usuário válido", async () => {
   // Given
   const app = createApp({ repository: createMemoryRepository() });

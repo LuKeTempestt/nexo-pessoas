@@ -16,7 +16,9 @@ function tratadorErros(error, request, response, next) {
   if (error.code === "23505") {
     const conflictMessages = {
       uq_usuarios_email: "Já existe um usuário com este e-mail.",
-      uq_usuarios_cpf: "Já existe um usuário com este CPF."
+      uq_usuarios_cpf: "Já existe um usuário com este CPF.",
+      uq_operadores_email: "Já existe uma conta de acesso com este e-mail.",
+      operadores_email_key: "Já existe uma conta de acesso com este e-mail."
     };
 
     return response.status(409).json({
@@ -33,4 +35,3 @@ function tratadorErros(error, request, response, next) {
 }
 
 module.exports = tratadorErros;
-

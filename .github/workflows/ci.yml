@@ -32,3 +32,32 @@ jobs:
           else
             echo "DEPLOY_HOOK_URL não configurado; qualidade concluída sem deploy."
           fi
+
+  docker-smoke:
+    name: Docker smoke test
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Construir e iniciar a pilha
+        run: docker compose up --build -d
+      - name: Aguardar a aplicação saudável
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/api/saude/prontidao; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Validar configuração inicial, PostgreSQL e Redis
+        run: |
+          curl --fail --silent http://127.0.0.1:3000/api/setup/status
+          docker compose exec -T database psql -U crud_app -d crud_usuarios -c "SELECT COUNT(*) FROM usuarios"
+          docker compose exec -T redis redis-cli ping | grep PONG
+      - name: Exibir logs em caso de falha
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Encerrar ambiente de teste
+        if: always()
+        run: docker compose down -v

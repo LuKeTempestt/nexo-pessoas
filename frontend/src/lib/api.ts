@@ -1,4 +1,15 @@
-import type { Session, SortOption, User, UserInput, UserPage, UserSummary } from "../types/user";
+import type {
+  Operator,
+  OperatorInput,
+  OperatorRole,
+  Session,
+  SetupStatus,
+  SortOption,
+  User,
+  UserInput,
+  UserPage,
+  UserSummary
+} from "../types/user";
 
 let csrfToken = "";
 
@@ -82,4 +93,36 @@ export const authApi = {
     await request<void>("/auth/logout", { method: "POST" });
     csrfToken = "";
   }
+};
+
+export const setupApi = {
+  status: () => request<SetupStatus>("/setup/status"),
+  createAdministrator: (input: {
+    readonly nome: string;
+    readonly email: string;
+    readonly password: string;
+    readonly setupToken?: string;
+  }) => request<Operator>("/setup/administrator", {
+    method: "POST",
+    body: JSON.stringify(input)
+  })
+};
+
+export const operatorsApi = {
+  list: () => request<readonly Operator[]>("/operadores"),
+  create: (operator: OperatorInput) => request<Operator>("/operadores", {
+    method: "POST",
+    body: JSON.stringify(operator)
+  }),
+  changeRole: (id: string, role: OperatorRole) => request<Operator>(`/operadores/${id}/perfil`, {
+    method: "PATCH",
+    body: JSON.stringify({ role })
+  }),
+  activate: (id: string) => request<Operator>(`/operadores/${id}/ativar`, { method: "PATCH" }),
+  deactivate: (id: string) => request<Operator>(`/operadores/${id}/desativar`, { method: "PATCH" }),
+  resetPassword: (id: string, password: string) => request<Operator>(`/operadores/${id}/senha`, {
+    method: "PATCH",
+    body: JSON.stringify({ password })
+  }),
+  revokeSessions: (id: string) => request<void>(`/operadores/${id}/sessoes`, { method: "DELETE" })
 };

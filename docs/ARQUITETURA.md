@@ -7,8 +7,23 @@ O projeto é um monorepo npm com dois workspaces:
 - `frontend`: aplicação React compilada pelo Vite;
 - `backend`: API Express e servidor dos arquivos de produção.
 
-O PostgreSQL permanece independente. Essa separação permite desenvolver o
-front-end com recarga rápida e publicar uma única aplicação Node quando desejado.
+PostgreSQL e Redis permanecem serviços independentes. Essa separação permite
+desenvolver o front-end com recarga rápida e executar a solução inteira com
+Docker Compose, sem conta em nuvem.
+
+## Ambiente Docker
+
+```text
+Navegador -> app (React compilado + Express)
+                 |-> PostgreSQL (usuários, operadores, sessões, auditoria)
+                 |-> Redis (limitação temporária de tentativas)
+
+migrate -> PostgreSQL -> encerra com sucesso
+```
+
+O Compose só inicia `app` depois de PostgreSQL, migrações e Redis estarem
+saudáveis. O banco usa volume persistente; o Redis guarda apenas estado
+temporário de segurança e não precisa persistir em disco.
 
 ## Fluxo de produção
 
@@ -31,6 +46,7 @@ npm run build
 | Validator | normalizar e validar | acessar o banco |
 | Repository | persistir com SQL | escolher códigos HTTP |
 | PostgreSQL | integridade e armazenamento | controlar a interface |
+| Redis | estado temporário compartilhado | guardar usuários ou senhas |
 
 ## Segurança e perfis
 
@@ -43,6 +59,21 @@ guarda somente seu hash. Escritas também exigem token CSRF.
 | ADMIN | sim | sim | sim | sim |
 | OPERADOR | sim | sim | não | não |
 | AUDITOR | sim | não | não | sim |
+
+Somente `ADMIN` gerencia contas de operação. A API impede que uma pessoa
+desative ou rebaixe a própria conta e protege o último administrador ativo. Uma
+troca de perfil, desativação ou redefinição de senha revoga sessões anteriores.
+
+## Configuração inicial
+
+`GET /api/setup/status` informa se já existe administrador. Quando não existe,
+a interface oferece o cadastro inicial. O repositório usa transação e lock
+consultivo no PostgreSQL para impedir que duas requisições criem dois primeiros
+administradores ao mesmo tempo.
+
+No Compose local, a aplicação é publicada apenas em `127.0.0.1` e o fluxo não
+exige código. Em produção, `SETUP_MODE=token` exige um `SETUP_TOKEN` secreto que
+nunca é incorporado ao JavaScript do navegador.
 
 ## Exclusão lógica
 
@@ -92,8 +123,8 @@ serviço separado.
 
 ## Próximos passos de produto
 
-1. observabilidade e logs estruturados centralizados;
-2. recuperação de senha por e-mail;
+1. logs estruturados e métricas com ferramentas locais e gratuitas;
+2. recuperação de senha por e-mail quando houver provedor configurado;
 3. autenticação multifator;
 4. paginação por cursor para bases muito grandes;
-5. deploy em ambiente de homologação antes de produção.
+5. migração controlada da API para Python/FastAPI como evolução separada.

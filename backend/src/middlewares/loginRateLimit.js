@@ -1,25 +1,22 @@
 const AppError = require("../errors/AppError");
+const createRateLimitStore = require("../infrastructure/rateLimitStore");
 
-function createLoginRateLimit({ limit = 5, windowMs = 15 * 60 * 1000 } = {}) {
-  const attempts = new Map();
-  return (request, response, next) => {
-    const key = request.ip;
-    const now = Date.now();
-    const current = attempts.get(key);
+function createLoginRateLimit({ limit = 5, windowMs = 15 * 60 * 1000, store = createRateLimitStore() } = {}) {
+  return async (request, response, next) => {
+    const key = `${request.ip}:${request.path}`;
     response.once("finish", () => {
-      if (response.statusCode < 400) attempts.delete(key);
+      if (response.statusCode < 400) void store.reset(key);
     });
-    if (!current || current.resetAt <= now) {
-      attempts.set(key, { count: 1, resetAt: now + windowMs });
+    try {
+      const count = await store.increment(key, windowMs);
+      if (count > limit) {
+        next(new AppError("Muitas tentativas de acesso. Tente novamente mais tarde.", 429));
+        return;
+      }
       next();
-      return;
+    } catch (error) {
+      next(new AppError("O controle de acesso está temporariamente indisponível.", 503));
     }
-    current.count += 1;
-    if (current.count > limit) {
-      next(new AppError("Muitas tentativas de acesso. Tente novamente mais tarde.", 429));
-      return;
-    }
-    next();
   };
 }
 

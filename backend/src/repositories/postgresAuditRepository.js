@@ -1,10 +1,10 @@
 function createPostgresAuditRepository(database) {
   return {
-    async record({ actor, action, entityId, details = {} }) {
+    async record({ actor, action, entity = "USUARIO", entityId, details = {} }) {
       await database.query(
-        `INSERT INTO auditoria (operador_id, operador_email, acao, entidade_id, detalhes)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [actor?.id ?? null, actor?.email ?? "sistema", action, entityId ?? null, details]
+        `INSERT INTO auditoria (operador_id, operador_email, acao, entidade, entidade_id, detalhes)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [actor?.id ?? null, actor?.email ?? "sistema", action, entity, entityId ?? null, details]
       );
     },
     async findPage({ limit, offset }) {

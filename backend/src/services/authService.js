@@ -3,7 +3,7 @@ const AppError = require("../errors/AppError");
 const { verifyPassword } = require("../security/passwords");
 
 const permissions = Object.freeze({
-  ADMIN: new Set(["users:read", "users:write", "users:permanent-delete", "audit:read"]),
+  ADMIN: new Set(["users:read", "users:write", "users:permanent-delete", "audit:read", "team:manage"]),
   OPERADOR: new Set(["users:read", "users:write"]),
   AUDITOR: new Set(["users:read", "audit:read"])
 });

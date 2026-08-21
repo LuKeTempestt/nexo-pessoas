@@ -1,8 +1,15 @@
-import { LogOut } from "lucide-react";
+import { LogOut, Users, UsersRound } from "lucide-react";
 import { Button } from "./Button";
-import type { Operator } from "../types/user";
+import type { AppSection, Operator } from "../types/user";
 
-export function Topbar({ operator, onLogout }: { readonly operator: Operator; readonly onLogout: () => void }) {
+type TopbarProps = {
+  readonly operator: Operator;
+  readonly section: AppSection;
+  readonly onSectionChange: (section: AppSection) => void;
+  readonly onLogout: () => void;
+};
+
+export function Topbar({ operator, section, onSectionChange, onLogout }: TopbarProps) {
   return (
     <header className="topbar">
       <div className="shell topbar__content">
@@ -13,6 +20,11 @@ export function Topbar({ operator, onLogout }: { readonly operator: Operator; re
           </svg>
           <span>Nexo Pessoas</span>
         </a>
+
+        <nav className="product-nav" aria-label="Áreas do sistema">
+          <button type="button" aria-current={section === "users" ? "page" : undefined} onClick={() => onSectionChange("users")}><Users size={16} />Usuários</button>
+          {operator.role === "ADMIN" && <button type="button" aria-current={section === "team" ? "page" : undefined} onClick={() => onSectionChange("team")}><UsersRound size={16} />Equipe e acessos</button>}
+        </nav>
 
         <div className="operator-menu">
           <span><strong>{operator.nome}</strong><small>{operator.role}</small></span>

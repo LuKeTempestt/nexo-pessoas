@@ -5,13 +5,26 @@ const createUsuarioService = require("./services/usuarioService");
 const createUsuarioController = require("./controllers/usuarioController");
 const createUsuarioRoutes = require("./routes/usuarioRoutes");
 const createAuthRoutes = require("./routes/authRoutes");
+const createSetupRoutes = require("./routes/setupRoutes");
+const createOperatorRoutes = require("./routes/operatorRoutes");
 const createAuthService = require("./services/authService");
+const createSetupService = require("./services/setupService");
+const createOperatorService = require("./services/operatorService");
 const createAuthController = require("./controllers/authController");
+const createSetupController = require("./controllers/setupController");
+const createOperatorController = require("./controllers/operatorController");
 const { createAuthMiddleware } = require("./middlewares/auth");
 const createLoginRateLimit = require("./middlewares/loginRateLimit");
 const tratadorErros = require("./middlewares/tratadorErros");
 
-function createApp({ repository, authRepository = null, auditRepository = null }) {
+function createApp({
+  repository,
+  authRepository = null,
+  auditRepository = null,
+  setupOptions = {},
+  rateLimitStore = null,
+  healthCheck = async () => {}
+}) {
   const app = express();
   const service = createUsuarioService(repository, auditRepository);
   const controller = createUsuarioController(service);
@@ -36,8 +49,22 @@ function createApp({ repository, authRepository = null, auditRepository = null }
     response.status(200).json({ status: "ok" });
   });
 
+  app.get("/api/saude/prontidao", async (request, response) => {
+    try {
+      await healthCheck();
+      response.status(200).json({ status: "pronto" });
+    } catch (error) {
+      response.status(503).json({ status: "indisponivel" });
+    }
+  });
+
   if (authService) {
-    app.use("/api/auth", createAuthRoutes(createAuthController(authService), auth, createLoginRateLimit()));
+    const setupService = createSetupService(authRepository, setupOptions);
+    const operatorService = createOperatorService(authRepository, auditRepository);
+    const rateLimitOptions = rateLimitStore ? { store: rateLimitStore } : {};
+    app.use("/api/setup", createSetupRoutes(createSetupController(setupService), createLoginRateLimit(rateLimitOptions)));
+    app.use("/api/auth", createAuthRoutes(createAuthController(authService), auth, createLoginRateLimit(rateLimitOptions)));
+    app.use("/api/operadores", createOperatorRoutes(createOperatorController(operatorService), auth));
   }
   app.use("/api/usuarios", createUsuarioRoutes(controller, auth));
 

@@ -91,8 +91,9 @@ Unidade base: 4px.
 ### Marca e barra superior
 
 - Símbolo geométrico próprio com trilho cobalto e wordmark textual.
-- Estado de serviço usa ponto verde e o texto “Sistema disponível”.
-- Não exibe navegação ou conta fictícia.
+- Navegação operacional alterna entre “Usuários” e, para administradores,
+  “Equipe e acessos”.
+- A conta autenticada e a ação de sair permanecem visíveis sem inventar dados.
 
 ### Botão
 
@@ -141,6 +142,21 @@ Unidade base: 4px.
 - Ocultação usa diálogo separado, explica a preservação e oferece restauração
   na aba de usuários ocultos.
 - Entrada por opacidade e escala, respeitando movimento reduzido.
+
+### Configuração inicial
+
+- Usa a mesma superfície do login, com largura ampliada e ícone de segurança.
+- Solicita nome, e-mail, senha e confirmação; em produção, também solicita o
+  código secreto da instalação.
+- Depois da criação do primeiro administrador, a tela deixa de estar disponível.
+
+### Equipe e acessos
+
+- Painel administrativo no mesmo padrão da base de usuários.
+- Tabela responsiva com pessoa, perfil, status, data e ações de segurança.
+- Permite criar contas individuais, trocar perfil, ativar, desativar, redefinir
+  senha e revogar sessões.
+- A própria conta não pode ser desativada nem rebaixada pela interface.
 
 ## 6. Movimento e interação
 

@@ -1,10 +1,13 @@
 const { COOKIE_NAME, readCookie } = require("../middlewares/auth");
 
 function cookieOptions() {
+  const secure = process.env.SESSION_COOKIE_SECURE
+    ? process.env.SESSION_COOKIE_SECURE === "true"
+    : process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     maxAge: 8 * 60 * 60 * 1000
   };
