@@ -1,4 +1,4 @@
-name: CI e publicação
+name: CI
 
 on:
   push:
@@ -13,8 +13,8 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
           cache: npm
@@ -29,23 +29,12 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:ci
       - run: npm run build
-      - name: Acionar publicação configurada
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
-        run: |
-          if [ -n "$DEPLOY_HOOK_URL" ]; then
-            curl --fail --silent --show-error --request POST "$DEPLOY_HOOK_URL"
-          else
-            echo "DEPLOY_HOOK_URL não configurado; qualidade concluída sem deploy."
-          fi
-
   docker-smoke:
     name: Docker smoke test
     needs: quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Construir e iniciar a pilha
         run: docker compose up --build -d
       - name: Aguardar frontend e backend saudáveis

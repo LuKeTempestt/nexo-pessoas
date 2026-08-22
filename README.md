@@ -122,7 +122,7 @@ apaga os dados locais.
 
 ## Desenvolvimento
 
-Pré-requisitos: Node.js 22+, Python 3.12+, [uv](https://docs.astral.sh/uv/) e
+Pré-requisitos: Node.js 22.13+, Python 3.12+, [uv](https://docs.astral.sh/uv/) e
 Docker Desktop.
 
 ```powershell

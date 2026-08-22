@@ -7,7 +7,7 @@ descreva mudanças maiores em uma proposta curta.
 ## Ambiente de desenvolvimento
 
 1. Faça um fork e crie uma branch a partir de `main`.
-2. Instale Node.js 22+, Python 3.12+, `uv` e Docker Desktop.
+2. Instale Node.js 22.13+, Python 3.12+, `uv` e Docker Desktop.
 3. Execute `npm install` e `uv sync --project backend`.
 4. Copie `backend/.env.example` para `backend/.env`.
 5. Execute `npm run dev:infra` e, depois, `npm run dev`.
