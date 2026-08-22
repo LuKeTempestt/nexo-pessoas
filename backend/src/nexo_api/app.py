@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import RequestResponseEndpoint
@@ -25,6 +25,12 @@ from nexo_api.routes.users import create_user_router
 
 LOGGER = logging.getLogger("nexo_api")
 
+SWAGGER_CSP = (
+    "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; "
+    "style-src https://cdn.jsdelivr.net; connect-src 'self'; img-src 'self' data:; "
+    "frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+)
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Cria uma instância completa, permitindo configuração isolada em testes."""
@@ -39,7 +45,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application = FastAPI(
         title="Nexo Pessoas API",
         version="5.1.0",
-        docs_url="/api/docs",
+        docs_url=None,
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
@@ -65,6 +71,26 @@ def _install_routes(application: FastAPI, container: Container) -> None:
             return JSONResponse({"status": "indisponivel"}, status_code=503)
         return JSONResponse({"status": "pronto"})
 
+    @application.get("/api/docs", include_in_schema=False)
+    async def api_docs() -> HTMLResponse:
+        return HTMLResponse(
+            """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nexo Pessoas API</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+</head><body><div id="swagger-ui"></div>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script src="/api/docs-init.js"></script></body></html>"""
+        )
+
+    @application.get("/api/docs-init.js", include_in_schema=False)
+    async def api_docs_script() -> Response:
+        script = (
+            "window.ui=SwaggerUIBundle({url:'/api/openapi.json',dom_id:'#swagger-ui',"
+            "deepLinking:true,presets:[SwaggerUIBundle.presets.apis],layout:'BaseLayout'});"
+        )
+        return Response(script, media_type="application/javascript")
+
     application.include_router(
         create_auth_router(
             container.auth,
@@ -80,8 +106,7 @@ def _install_routes(application: FastAPI, container: Container) -> None:
 
 
 def _install_middleware(application: FastAPI, settings: Settings) -> None:
-    allowed_hosts = [host.strip() for host in settings.trusted_host.split(",") if host.strip()]
-    application.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts or ["*"])
+    application.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts or ["*"])
 
     @application.middleware("http")
     async def secure_headers(
@@ -91,13 +116,18 @@ def _install_middleware(application: FastAPI, settings: Settings) -> None:
         if content_length and content_length.isdigit() and int(content_length) > 32_768:
             return JSONResponse({"erro": "O corpo da requisição é muito grande."}, status_code=413)
         response = await call_next(request)
+        content_security_policy = (
+            SWAGGER_CSP if request.url.path in {"/api/docs", "/api/docs-init.js"}
+            else "default-src 'none'; frame-ancestors 'none'"
+        )
         response.headers.update(
             {
+                "Cache-Control": "no-store",
                 "X-Content-Type-Options": "nosniff",
                 "X-Frame-Options": "DENY",
                 "Referrer-Policy": "no-referrer",
                 "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-                "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+                "Content-Security-Policy": content_security_policy,
             }
         )
         return response

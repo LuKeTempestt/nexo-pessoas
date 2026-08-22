@@ -69,7 +69,7 @@ services:
       REDIS_URL: redis://redis:6379
       SESSION_COOKIE_SECURE: "false"
       SETUP_MODE: local
-      TRUSTED_HOST: localhost,127.0.0.1
+      TRUSTED_HOST: localhost,127.0.0.1,host.docker.internal
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
