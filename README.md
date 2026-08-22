@@ -160,7 +160,7 @@ O pipeline Linux repete essas verificações e executa um ambiente Docker real. 
 smoke test cria o administrador, autentica, cadastra, edita, desativa, ativa,
 oculta, restaura, exclui definitivamente e consulta a auditoria.
 
-Na versão 5.1.0, a suíte possui 60 testes automatizados: 37 no backend e 23 no
+Na versão 5.1.1, a suíte possui 60 testes automatizados: 37 no backend e 23 no
 frontend.
 
 ## Deploy gratuito de portfólio
@@ -209,9 +209,13 @@ nexo-pessoas/
 └── vercel.json              # frontend e backend no mesmo projeto Vercel
 ```
 
-## Contribuição e licença
+## Manutenção, contribuição e licença
 
-Leia [CONTRIBUTING.md](./CONTRIBUTING.md) antes de abrir uma mudança. O código é
-distribuído sob a [licença MIT](./LICENSE).
+Responsável pela manutenção: [João Fernando De Paiva E Silva
+(@LuKeTempestt)](https://github.com/LuKeTempestt). Alterações passam por Pull
+Request, CI, análise CodeQL e validação do ambiente de prévia antes de chegar à
+produção.
 
-Mantido por [João Lopes (LuKeTempestt)](https://github.com/LuKeTempestt).
+Leia [CONTRIBUTING.md](./CONTRIBUTING.md) antes de abrir uma mudança. Relatos de
+segurança devem seguir o canal descrito em [SECURITY.md](./SECURITY.md). O
+código é distribuído sob a [licença MIT](./LICENSE).
