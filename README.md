@@ -160,7 +160,7 @@ O pipeline Linux repete essas verificações e executa um ambiente Docker real. 
 smoke test cria o administrador, autentica, cadastra, edita, desativa, ativa,
 oculta, restaura, exclui definitivamente e consulta a auditoria.
 
-Na versão 5.1.0, a suíte possui 52 testes automatizados: 30 no backend e 22 no
+Na versão 5.1.0, a suíte possui 60 testes automatizados: 37 no backend e 23 no
 frontend.
 
 ## Deploy gratuito de portfólio

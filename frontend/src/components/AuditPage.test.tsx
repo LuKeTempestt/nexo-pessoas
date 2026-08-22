@@ -35,4 +35,17 @@ describe("AuditPage", () => {
     renderPage();
     expect(await screen.findByText("Nenhum evento registrado")).toBeInTheDocument();
   });
+
+  it("permite tentar novamente depois de uma falha", async () => {
+    vi.mocked(auditApi.list)
+      .mockRejectedValueOnce(new Error("Serviço indisponível"))
+      .mockResolvedValueOnce({ items: [], page: 1, pageSize: 20, total: 0, totalPages: 1 });
+
+    renderPage();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Serviço indisponível");
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    expect(await screen.findByText("Nenhum evento registrado")).toBeInTheDocument();
+    expect(auditApi.list).toHaveBeenCalledTimes(2);
+  });
 });

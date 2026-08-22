@@ -62,6 +62,17 @@ jobs:
             "$base/auth/login")
           csrf=$(echo "$login" | jq --raw-output '.csrfToken')
 
+          for attempt in $(seq 1 5); do
+            test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+              --header 'Content-Type: application/json' \
+              --data '{"email":"admin-ci@nexo.local","password":"senha-incorreta"}' \
+              "$base/auth/login")" = "401"
+          done
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --data '{"email":"admin-ci@nexo.local","password":"senha-incorreta"}' \
+            "$base/auth/login")" = "429"
+
           created=$(curl --fail --silent --show-error \
             --cookie /tmp/nexo-cookies \
             --header "X-CSRF-Token: $csrf" \
@@ -69,6 +80,13 @@ jobs:
             --data '{"nome":"Pessoa CI","email":"pessoa-ci@nexo.local","cpf":"16899535009","telefone":"11999999999","dataNascimento":"1995-03-15"}' \
             "$base/usuarios")
           id=$(echo "$created" | jq --raw-output '.id')
+
+          curl --fail --silent --show-error \
+            --cookie /tmp/nexo-cookies \
+            "$base/usuarios/$id" | jq --arg id "$id" --exit-status '.id == $id'
+          curl --fail --silent --show-error \
+            --cookie /tmp/nexo-cookies \
+            "$base/usuarios?pageSize=100" | jq --arg id "$id" --exit-status 'any(.items[]; .id == $id)'
 
           curl --fail --silent --show-error --request PUT \
             --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
@@ -95,9 +113,15 @@ jobs:
             --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
             "$base/usuarios/$id/permanente"
 
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/nexo-cookies "$base/usuarios/$id")" = "404"
+
           curl --fail --silent --show-error \
             --cookie /tmp/nexo-cookies \
             "$base/auditoria" | jq --exit-status '.total >= 7'
+          docker compose exec -T database psql -U crud_app -d crud_usuarios \
+            --tuples-only --no-align \
+            --command "SELECT COUNT(*) FROM usuarios WHERE id = $id" | grep -qx '0'
       - name: Validar configuração inicial, PostgreSQL e Redis
         run: |
           curl --fail --silent http://127.0.0.1:3000/api/setup/status

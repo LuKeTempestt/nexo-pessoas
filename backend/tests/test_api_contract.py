@@ -41,6 +41,23 @@ def test_trusted_host_rejects_unknown_domain() -> None:
     assert response.status_code == 400
 
 
+def test_preview_wildcard_accepts_only_vercel_subdomains() -> None:
+    """O curinga de Preview não se transforma em um curinga global."""
+    settings = Settings(
+        app_env="test",
+        database_url="postgresql://crud_app:test@127.0.0.1:5433/crud_usuarios",
+        setup_mode="local",
+        session_cookie_secure=False,
+        trusted_host="*.vercel.app",
+    )
+    with TestClient(create_app(settings), base_url="https://branch.vercel.app") as client:
+        accepted = client.get("/api/saude")
+        rejected = client.get("/api/saude", headers={"Host": "branch.example"})
+
+    assert accepted.status_code == 200
+    assert rejected.status_code == 400
+
+
 def test_openapi_documents_crud_and_auth_routes() -> None:
     """Given the app, when OpenAPI is read, then key product routes exist."""
     with _client() as client:
