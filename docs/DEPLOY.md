@@ -41,20 +41,19 @@ expiração para limitar tentativas de login e onboarding.
 
 1. No painel da Vercel, selecione **Add New > Project**.
 2. Importe `LuKeTempestt/nexo-pessoas`.
-3. Em **Framework Preset**, selecione **Services**.
-4. Mantenha o diretório raiz do repositório.
-5. A configuração de `vercel.json` criará:
+3. Mantenha o diretório raiz do repositório.
+4. A configuração de `vercel.json` criará:
    - `frontend`, framework Vite, prefixo `/`;
    - `backend`, framework FastAPI, prefixo `/api`.
 
-Vercel Services está em beta. Se a opção **Services** não aparecer na conta,
-solicite o acesso pelo próprio painel antes de publicar; não transforme o
-backend em JavaScript e não misture os dois serviços para contornar a tela.
+As regras `rewrites` enviam `/api/*` ao serviço Python e todo o restante ao
+serviço React. Não é necessário transformar o backend em JavaScript nem criar
+dois projetos Vercel independentes.
 
 ## 4. Configurar variáveis na Vercel
 
-Em **Project Settings > Environment Variables**, adicione para Production,
-Preview e Development quando aplicável:
+Em **Project Settings > Environment Variables**, adicione segredos apenas para
+Production e Preview. O ambiente local continua usando Docker:
 
 | Variável | Valor |
 |---|---|

@@ -208,10 +208,18 @@ somente leitura com pequenos `tmpfs` onde necessário.
 
 ```json
 {
-  "experimentalServices": {
-    "frontend": { "entrypoint": "frontend/", "routePrefix": "/" },
-    "backend": { "entrypoint": "backend/server.py", "routePrefix": "/api" }
-  }
+  "services": {
+    "frontend": { "root": "frontend/", "framework": "vite" },
+    "backend": {
+      "root": "backend/",
+      "framework": "fastapi",
+      "entrypoint": "server:app"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ]
 }
 ```
 
