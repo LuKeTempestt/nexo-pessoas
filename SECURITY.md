@@ -1,4 +1,18 @@
-# Segurança
+# Política de segurança
+
+## Versões suportadas
+
+| Versão | Suporte |
+|---|---|
+| `5.x` | Atualizações de segurança |
+| `< 5.0` | Sem suporte |
+
+## Relato responsável
+
+Use o canal privado
+[Report a vulnerability](https://github.com/LuKeTempestt/nexo-pessoas/security/advisories/new).
+Não abra uma issue pública com credenciais, dados pessoais ou instruções de
+exploração. Inclua impacto, passos mínimos, versão e evidências sanitizadas.
 
 ## Credenciais
 
@@ -10,11 +24,12 @@ Nunca publique `DATABASE_URL`, `SETUP_TOKEN`, cookies, hashes ou tokens Upstash.
 Se um segredo aparecer em commit, revogue-o no provedor; apagá-lo apenas do
 arquivo não remove o histórico Git.
 
-## Relato responsável
+## Dados pessoais
 
-Não abra uma issue pública com dados pessoais, credenciais ou instruções de
-exploração. Use o canal privado de reporte de segurança do GitHub quando
-habilitado no repositório.
+A instância pública é uma demonstração e deve receber apenas dados fictícios.
+CPF, telefone e nascimento exigem definição de finalidade, base legal,
+retenção, controle de acesso e atendimento ao titular antes de uso real. A
+licença do código não equivale a conformidade LGPD.
 
 ## Controles implementados
 
@@ -22,7 +37,17 @@ habilitado no repositório.
 - sessão `HttpOnly`, `Secure` em produção e proteção CSRF;
 - autorização por perfil no backend;
 - SQL parametrizado e constraints no PostgreSQL;
-- limite de tentativas compartilhado via Redis;
+- rate limit compartilhado via Redis, obrigatório em produção;
+- configuração produtiva validada antes de a API iniciar;
+- hosts permitidos validados pelo backend;
 - exclusão definitiva restrita e auditada;
 - contêineres não privilegiados e filesystem somente leitura;
-- mensagens de erro sem stack trace ou detalhes de infraestrutura.
+- mensagens de erro sem stack trace ou detalhes de infraestrutura;
+- CodeQL e atualização automatizada de dependências no GitHub.
+
+## Escopo atual
+
+Este é um produto de portfólio, não um serviço de identidade certificado. Uma
+implantação real ainda deve definir backup, retenção, observabilidade, resposta
+a incidentes, criptografia de campos e revisão periódica de acesso. As lacunas
+técnicas conhecidas são mantidas em [docs/ROADMAP.md](./docs/ROADMAP.md).

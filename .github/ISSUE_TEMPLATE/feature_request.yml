@@ -1,0 +1,24 @@
+name: Propor melhoria
+description: Sugira uma evolução alinhada à gestão de usuários.
+title: "[Melhoria]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Que necessidade do usuário ou da operação ainda não está atendida?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: Descreva o comportamento desejado, sem impor a implementação.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Impacto e escopo
+      description: Indique efeitos no frontend, backend, banco, segurança e compatibilidade.

@@ -41,7 +41,6 @@ export function UsersWorkspace({ session }: { readonly session: Session }) {
   const summaryQuery = useQuery({ queryKey: ["users", "summary"], queryFn: usersApi.summary });
   const currentPage = usersQuery.data ?? EMPTY_PAGE;
 
-  useEffect(() => { setPage(1); }, [deferredQuery, sort, view]);
   useEffect(() => {
     if (!toast) return;
     const timeout = window.setTimeout(() => setToast(null), 4_000);
@@ -84,7 +83,7 @@ export function UsersWorkspace({ session }: { readonly session: Session }) {
 
   function openCreate() { setEditingUser(null); setFormOpen(true); }
   function openEdit(user: User) { setEditingUser(user); setFormOpen(true); }
-  function changeView(nextView: UserView) { setView(nextView); setQuery(""); }
+  function changeView(nextView: UserView) { setView(nextView); setQuery(""); setPage(1); }
 
   return (
     <>
@@ -100,7 +99,8 @@ export function UsersWorkspace({ session }: { readonly session: Session }) {
           users={currentPage.items} totalResults={currentPage.total} query={query} sort={sort}
           page={page} totalPages={currentPage.totalPages} loading={usersQuery.isLoading || usersQuery.isFetching}
           error={usersQuery.error instanceof Error ? usersQuery.error.message : null} view={view}
-          onQueryChange={setQuery} onSortChange={setSort} onPageChange={setPage} onCreate={openCreate}
+          onQueryChange={(value) => { setQuery(value); setPage(1); }}
+          onSortChange={(value) => { setSort(value); setPage(1); }} onPageChange={setPage} onCreate={openCreate}
           onEdit={openEdit} onHide={setDeletingUser} onRestore={(user) => restoreMutation.mutate(user.id)}
           onToggleStatus={(user) => statusMutation.mutate(user)} onPermanentDelete={setPermanentDeletingUser}
           canWrite={canWrite} canPermanentDelete={canPermanentDelete} onViewChange={changeView}
