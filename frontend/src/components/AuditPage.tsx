@@ -35,6 +35,17 @@ function detailsLabel(event: AuditEvent): string {
   return entries.map(([key, value]) => `${key}: ${value}`).join(" · ");
 }
 
+function AuditRow({ event }: { readonly event: AuditEvent }) {
+  const details = detailsLabel(event);
+  return <tr>
+    <td data-label="Data"><time dateTime={event.dataEvento}>{formatDateTime(event.dataEvento)}</time></td>
+    <td data-label="Responsável"><span className="audit-operator">{event.operadorEmail}</span></td>
+    <td data-label="Ação"><span className="audit-action">{actionLabel(event.acao)}</span></td>
+    <td data-label="Registro" className="data-mono">{event.entidadeId ?? "—"}</td>
+    <td data-label="Detalhes"><span className="audit-details" title={details}>{details}</span></td>
+  </tr>;
+}
+
 export function AuditPage() {
   const [page, setPage] = useState(1);
   const auditQuery = useQuery({
@@ -61,13 +72,7 @@ export function AuditPage() {
         {auditQuery.isLoading ? <div className="empty-state"><span>Carregando eventos...</span></div> : null}
         {auditQuery.error instanceof Error ? <div className="error-state" role="alert"><strong>Não foi possível carregar a auditoria.</strong><span>{auditQuery.error.message}</span><Button type="button" onClick={() => void auditQuery.refetch()}>Tentar novamente</Button></div> : null}
         {auditQuery.data && currentPage.items.length > 0 ? <div className="table-wrap"><table className="audit-table"><caption className="sr-only">Trilha de auditoria do sistema</caption><thead><tr><th scope="col">Data</th><th scope="col">Responsável</th><th scope="col">Ação</th><th scope="col">Registro</th><th scope="col">Detalhes</th></tr></thead><tbody>
-          {currentPage.items.map((event) => <tr key={event.id}>
-            <td data-label="Data"><time dateTime={event.dataEvento}>{formatDateTime(event.dataEvento)}</time></td>
-            <td data-label="Responsável"><span className="audit-operator">{event.operadorEmail}</span></td>
-            <td data-label="Ação"><span className="audit-action">{actionLabel(event.acao)}</span></td>
-            <td data-label="Registro" className="data-mono">{event.entidadeId ?? "—"}</td>
-            <td data-label="Detalhes"><span className="audit-details" title={detailsLabel(event)}>{detailsLabel(event)}</span></td>
-          </tr>)}
+          {currentPage.items.map((event) => <AuditRow key={event.id} event={event} />)}
         </tbody></table></div> : null}
         {auditQuery.data && currentPage.items.length === 0 ? <div className="empty-state"><ClipboardList size={34} /><strong>Nenhum evento registrado</strong><span>As próximas operações sensíveis aparecerão aqui.</span></div> : null}
         {auditQuery.data && currentPage.totalPages > 1 ? <footer className="pagination"><span>Página {currentPage.page} de {currentPage.totalPages}</span><div><Button variant="icon" type="button" title="Página anterior" aria-label="Página anterior" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}><ChevronLeft size={18} /></Button><Button variant="icon" type="button" title="Próxima página" aria-label="Próxima página" disabled={page >= currentPage.totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight size={18} /></Button></div></footer> : null}

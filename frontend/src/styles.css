@@ -254,6 +254,8 @@ tbody tr:hover { background: var(--color-surface-muted); }
 }
 
 @media (max-width: 460px) {
+  .product-nav { justify-content: flex-start; overflow-x: auto; scrollbar-width: thin; }
+  .product-nav button { flex: 0 0 auto; }
   .data-export { width: 40px; flex: 0 0 40px; padding: 0; }
   .data-export span { display: none; }
   .modal__footer { align-items: stretch; flex-direction: column-reverse; }
