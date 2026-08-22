@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { LoginPage } from "./components/LoginPage";
+import { AuditPage } from "./components/AuditPage";
 import { SetupPage } from "./components/SetupPage";
 import { TeamPage } from "./components/TeamPage";
 import { Topbar } from "./components/Topbar";
@@ -71,6 +72,12 @@ export default function App() {
   }
 
   const session = sessionQuery.data;
+  const canReadAudit = session.operator.role === "ADMIN" || session.operator.role === "AUDITOR";
+  const content = section === "team" && session.operator.role === "ADMIN"
+    ? <TeamPage session={session} />
+    : section === "audit" && canReadAudit
+      ? <AuditPage />
+      : <UsersWorkspace session={session} />;
   return (
     <>
       <Topbar
@@ -79,9 +86,7 @@ export default function App() {
         onSectionChange={setSection}
         onLogout={() => logoutMutation.mutate()}
       />
-      {section === "team" && session.operator.role === "ADMIN"
-        ? <TeamPage session={session} />
-        : <UsersWorkspace session={session} />}
+      {content}
     </>
   );
 }

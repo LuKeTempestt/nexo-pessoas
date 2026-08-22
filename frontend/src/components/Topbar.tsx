@@ -1,4 +1,4 @@
-import { LogOut, Users, UsersRound } from "lucide-react";
+import { ClipboardList, LogOut, Users, UsersRound } from "lucide-react";
 import { Button } from "./Button";
 import type { AppSection, Operator } from "../types/user";
 
@@ -24,6 +24,7 @@ export function Topbar({ operator, section, onSectionChange, onLogout }: TopbarP
         <nav className="product-nav" aria-label="Áreas do sistema">
           <button type="button" aria-current={section === "users" ? "page" : undefined} onClick={() => onSectionChange("users")}><Users size={16} />Usuários</button>
           {operator.role === "ADMIN" && <button type="button" aria-current={section === "team" ? "page" : undefined} onClick={() => onSectionChange("team")}><UsersRound size={16} />Equipe e acessos</button>}
+          {(operator.role === "ADMIN" || operator.role === "AUDITOR") && <button type="button" aria-current={section === "audit" ? "page" : undefined} onClick={() => onSectionChange("audit")}><ClipboardList size={16} />Auditoria</button>}
         </nav>
 
         <div className="operator-menu">
