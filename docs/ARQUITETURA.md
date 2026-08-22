@@ -85,9 +85,10 @@ que impede estados contraditórios.
 - `03_adicionar_status_usuario.sql`: ativação e desativação;
 - `04_adicionar_seguranca_e_auditoria.sql`: contas, sessões e auditoria.
 
-Os scripts são idempotentes. O serviço `migrate` os aplica antes do FastAPI no
-Docker. No Neon, a mesma sequência é executada pelo SQL Editor antes do primeiro
-deploy.
+Os scripts de schema `01` a `04` são idempotentes. O serviço `migrate` os aplica
+antes do FastAPI no Docker. O script `00_criar_banco.sql` é apenas um auxiliar
+administrativo e não participa desse fluxo. No Neon, a sequência `01` a `04` é
+executada pelo SQL Editor antes do primeiro deploy.
 
 ## Decisões operacionais
 

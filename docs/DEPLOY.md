@@ -14,6 +14,10 @@ Projeto Vercel Nexo Pessoas
        └── UPSTASH_*    -> Upstash Redis
 ```
 
+Configuração pública atual: Vercel Hobby, Neon Free em São Paulo
+(`AWS sa-east-1`) e Upstash Free conectado pela integração da Vercel. Nenhum ID,
+token ou endereço de banco deve ser documentado no repositório.
+
 ## 1. Criar o PostgreSQL no Neon
 
 1. Entre no painel do Neon e crie um projeto no plano gratuito.
@@ -33,6 +37,20 @@ Projeto Vercel Nexo Pessoas
 2. Escolha uma região próxima da região usada pelos outros serviços.
 3. Copie `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`.
 4. Não use o token `READ_ONLY`; o limitador precisa incrementar e excluir chaves.
+
+### Alternativa: integração pelo Marketplace da Vercel
+
+A integração pode criar o recurso gratuito e injetar variáveis `KV_*` e
+`REDIS_URL`. O backend usa a API REST do Upstash, portanto crie aliases sensíveis
+em Production e Preview:
+
+| Variável do backend | Valor fornecido pela integração |
+|---|---|
+| `UPSTASH_REDIS_REST_URL` | URL REST do recurso conectado |
+| `UPSTASH_REDIS_REST_TOKEN` | token REST de leitura e escrita |
+
+Não copie esses valores para Development ou para o GitHub. O Docker local usa
+Redis TCP e não precisa dos segredos da nuvem.
 
 O Redis não guarda usuários nem senhas. Ele contém apenas contadores com prazo de
 expiração para limitar tentativas de login e onboarding.
@@ -64,6 +82,7 @@ Production e Preview. O ambiente local continua usando Docker:
 | `SESSION_COOKIE_SECURE` | `true` |
 | `SETUP_MODE` | `token` |
 | `SETUP_TOKEN` | código longo e aleatório criado por você |
+| `TRUSTED_HOST` | `*.vercel.app` enquanto não houver domínio próprio |
 
 Não existe login pronto no GitHub. `SETUP_TOKEN` protege somente a criação da
 primeira conta. Depois do deploy, a própria tela pedirá nome, e-mail, senha e

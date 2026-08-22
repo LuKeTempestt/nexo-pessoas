@@ -1,7 +1,7 @@
-# Guia de estudo passo a passo
+# Guia de desenvolvimento
 
 Este guia explica o código na ordem em que uma ação atravessa o produto. A
-interface permanece limpa; a aula fica na documentação.
+interface permanece operacional; o raciocínio técnico fica na documentação.
 
 ## 1. Entenda as quatro partes
 
@@ -249,10 +249,10 @@ Depois execute `docker compose up --build -d` e teste
 `http://localhost:3000/api/saude/prontidao`. Teste unitário prova uma peça;
 smoke test prova que as peças conseguem conversar.
 
-## 12. Exercícios seguros
+## 12. Evoluções orientadas por testes
 
 1. Adicione filtro por status ativo/desativado, começando pelo teste.
-2. Exiba auditoria em uma tela somente para `ADMIN` e `AUDITOR`.
+2. Adicione filtros por ação e responsável à tela de auditoria.
 3. Troque paginação por offset por cursor e compare o SQL.
 4. Crie teste que tente apagar definitivamente sem ocultar antes.
 5. Crie teste que tente desativar o último administrador.
