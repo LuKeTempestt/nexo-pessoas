@@ -2,6 +2,14 @@
 
 As mudanças relevantes deste produto seguem versionamento semântico.
 
+## 5.1.1 - 2026-08-22
+
+### Corrigido
+
+- nome completo do responsável pela manutenção no README e na licença;
+- propriedade técnica explícita por meio de `CODEOWNERS`;
+- fluxo público de contribuição, revisão e relatos de segurança.
+
 ## 5.1.0 - 2026-08-22
 
 ### Adicionado

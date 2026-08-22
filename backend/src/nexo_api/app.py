@@ -44,7 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     application = FastAPI(
         title="Nexo Pessoas API",
-        version="5.1.0",
+        version="5.1.1",
         docs_url=None,
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
