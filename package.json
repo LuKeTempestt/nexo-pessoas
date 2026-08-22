@@ -3,6 +3,9 @@
   "version": "5.1.0",
   "private": true,
   "description": "Produto full stack para gerenciamento de usuários.",
+  "engines": {
+    "node": ">=22.13"
+  },
   "workspaces": [
     "frontend"
   ],
@@ -13,7 +16,7 @@
     "dev:infra": "docker compose up -d database redis && docker compose run --rm migrate",
     "build": "npm run build -w frontend",
     "test": "uv run --project backend pytest -c backend/pyproject.toml backend/tests && npm run test -w frontend",
-    "test:ci": "uv run --project backend pytest -c backend/pyproject.toml backend/tests && npm run test -w frontend",
+    "test:ci": "npm test",
     "lint": "uv run --project backend ruff check --config backend/pyproject.toml backend && npm run lint -w frontend",
     "typecheck": "uv run --project backend basedpyright --project backend/pyproject.toml && npm run typecheck -w frontend",
     "docker:up": "docker compose up --build -d",

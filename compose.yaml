@@ -1,3 +1,4 @@
+# Nome legado mantido para reutilizar o volume local sem aparentar perda de dados.
 name: crud-usuarios
 
 services:
