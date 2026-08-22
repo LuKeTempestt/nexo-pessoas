@@ -8,7 +8,7 @@ RUN npm ci
 COPY frontend ./frontend
 RUN npm run build --workspace frontend
 
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.30-alpine AS runtime
 
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /workspace/frontend/dist /usr/share/nginx/html
