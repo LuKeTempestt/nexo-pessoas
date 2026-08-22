@@ -1,21 +1,22 @@
 {
   "name": "nexo-pessoas",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "private": true,
   "description": "Produto full stack para gerenciamento de usuários.",
   "workspaces": [
-    "backend",
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently -n API,WEB -c blue,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev": "concurrently -n API,WEB -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "uv run --project backend uvicorn nexo_api.app:app --host 127.0.0.1 --port 8000 --reload",
+    "dev:web": "npm run dev -w frontend",
     "build": "npm run build -w frontend",
-    "start": "npm run start -w backend",
-    "test": "npm run test -w backend && npm run test -w frontend",
-    "test:ci": "npm run test:ci -w backend && npm run test -w frontend",
-    "typecheck": "npm run typecheck -w frontend",
+    "test": "uv run --project backend pytest -c backend/pyproject.toml backend/tests && npm run test -w frontend",
+    "test:ci": "uv run --project backend pytest -c backend/pyproject.toml backend/tests && npm run test -w frontend",
+    "lint": "uv run --project backend ruff check --config backend/pyproject.toml backend",
+    "typecheck": "uv run --project backend basedpyright --project backend/pyproject.toml && npm run typecheck -w frontend",
     "docker:up": "docker compose up --build -d",
-    "docker:logs": "docker compose logs -f app",
+    "docker:logs": "docker compose logs -f frontend backend",
     "docker:down": "docker compose down"
   },
   "devDependencies": {

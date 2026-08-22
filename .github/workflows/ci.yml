@@ -18,7 +18,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: "3.13"
+          cache-dependency-glob: backend/uv.lock
       - run: npm ci
+      - run: uv sync --project backend --locked --dev
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:ci
       - run: npm run build
@@ -41,15 +48,57 @@ jobs:
       - uses: actions/checkout@v6
       - name: Construir e iniciar a pilha
         run: docker compose up --build -d
-      - name: Aguardar a aplicação saudável
+      - name: Aguardar frontend e backend saudáveis
         run: |
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:3000/api/saude/prontidao; then
+            if curl --fail --silent http://127.0.0.1:3000/api/saude/prontidao && \
+               curl --fail --silent http://127.0.0.1:8000/api/saude; then
               exit 0
             fi
             sleep 2
           done
           exit 1
+      - name: Validar fluxo CRUD ponta a ponta
+        run: |
+          base=http://127.0.0.1:3000/api
+          curl --fail --silent --show-error \
+            --header 'Content-Type: application/json' \
+            --data '{"nome":"Admin CI","email":"admin-ci@nexo.local","password":"Senha-CI-segura-123"}' \
+            "$base/setup/administrator"
+
+          login=$(curl --fail --silent --show-error \
+            --cookie-jar /tmp/nexo-cookies \
+            --header 'Content-Type: application/json' \
+            --data '{"email":"admin-ci@nexo.local","password":"Senha-CI-segura-123"}' \
+            "$base/auth/login")
+          csrf=$(echo "$login" | jq --raw-output '.csrfToken')
+
+          created=$(curl --fail --silent --show-error \
+            --cookie /tmp/nexo-cookies \
+            --header "X-CSRF-Token: $csrf" \
+            --header 'Content-Type: application/json' \
+            --data '{"nome":"Pessoa CI","email":"pessoa-ci@nexo.local","cpf":"16899535009","telefone":"11999999999","dataNascimento":"1995-03-15"}' \
+            "$base/usuarios")
+          id=$(echo "$created" | jq --raw-output '.id')
+
+          curl --fail --silent --show-error --request PATCH \
+            --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
+            "$base/usuarios/$id/desativar"
+          curl --fail --silent --show-error --request PATCH \
+            --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
+            "$base/usuarios/$id/ativar"
+          curl --fail --silent --show-error --request DELETE \
+            --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
+            "$base/usuarios/$id"
+          curl --fail --silent --show-error --request PATCH \
+            --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
+            "$base/usuarios/$id/restaurar"
+          curl --fail --silent --show-error --request DELETE \
+            --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
+            "$base/usuarios/$id"
+          curl --fail --silent --show-error --request DELETE \
+            --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
+            "$base/usuarios/$id/permanente"
       - name: Validar configuração inicial, PostgreSQL e Redis
         run: |
           curl --fail --silent http://127.0.0.1:3000/api/setup/status

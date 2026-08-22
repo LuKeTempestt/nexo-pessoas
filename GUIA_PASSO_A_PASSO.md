@@ -1,240 +1,253 @@
 # Guia de estudo passo a passo
 
-Este guia ensina o projeto na ordem em que os dados viajam. A explicação fica
-aqui; a interface do produto fica livre para fazer o trabalho dela.
+Este guia explica o código na ordem em que uma ação atravessa o produto. A
+interface permanece limpa; a aula fica na documentação.
 
-## Evolução para a versão 4
-
-O **front-end** está em `frontend/`: é a parte visível no navegador. O
-**back-end** está em `backend/`: autentica, verifica permissões, aplica regras e
-fala com o PostgreSQL. A pasta `database/` guarda tabelas e migrações.
-
-1. `database/04_adicionar_seguranca_e_auditoria.sql` cria operadores, sessões e auditoria.
-2. `backend/src/services/authService.js` valida credenciais e cria sessões.
-3. `backend/src/middlewares/auth.js` protege rotas e verifica perfil e CSRF.
-4. Busca, ordenação e página chegam à API e viram SQL com `LIMIT` e `OFFSET`.
-5. Ocultar é reversível. Apagar definitivamente exige usuário oculto, confirmação
-   textual e perfil `ADMIN`.
-6. `.github/workflows/ci.yml` valida cada atualização antes do gancho de deploy.
-
-7. `compose.yaml` inicia aplicação, PostgreSQL, migrações e Redis.
-8. A própria tela inicial cria o primeiro administrador. Não há credenciais
-   padrão, e senhas reais nunca devem entrar no código ou no Git.
-
-## 1. Execute e observe
-
-Para o caminho mais simples, execute `docker compose up --build -d`, abra
-`http://localhost:3000`, crie o primeiro administrador e faça as operações:
-
-1. cadastre um usuário;
-2. busque esse usuário;
-3. edite o telefone;
-4. desative e reative o usuário;
-5. oculte o registro e depois o restaure;
-6. como ADMIN, crie uma conta em “Equipe e acessos” e altere seu perfil.
-
-O caminho do cadastro é:
+## 1. Entenda as quatro partes
 
 ```text
-Componente React
-  -> TanStack Query mutation
-  -> POST /api/usuarios
-  -> controller
-  -> service
-  -> validator
-  -> repository
-  -> PostgreSQL
-  -> HTTP 201
-  -> cache invalidado
-  -> lista renderizada novamente
+frontend -> backend -> PostgreSQL
+                |
+                +----> Redis
 ```
 
-## 2. Entenda os dados antes da tela
+- `frontend/`: React e TypeScript. É o que aparece no navegador.
+- `backend/`: Python e FastAPI. Valida, autoriza e executa os casos de uso.
+- `database/`: SQL. Define tabelas, constraints, índices e migrações.
+- Redis: limita tentativas de acesso; não armazena pessoas.
+
+O frontend nunca executa SQL. O PostgreSQL nunca decide qual botão mostrar. A
+API é a fronteira entre esses mundos.
+
+## 2. Rode antes de estudar
+
+Na raiz do projeto:
+
+```powershell
+docker compose up --build -d
+docker compose ps
+```
+
+Abra `http://localhost:3000`. Crie o primeiro administrador pela tela e escolha
+uma senha com pelo menos 12 caracteres. Não procure uma senha no README: ela não
+existe, por decisão de segurança.
+
+Faça este roteiro manual:
+
+1. cadastre uma pessoa fictícia;
+2. busque pelo nome;
+3. edite o telefone;
+4. desative e reative;
+5. oculte e restaure;
+6. oculte novamente e teste a exclusão definitiva;
+7. crie um operador e um auditor na área de equipe.
+
+Agora você conhece o comportamento antes de abrir a implementação. Ler código
+sem saber o que ele deve fazer é arqueologia com pouca luz.
+
+## 3. Comece pelo banco
 
 Abra `database/01_criar_tabela.sql`.
 
-- `id` identifica cada linha.
-- `NOT NULL` impede dados obrigatórios ausentes.
-- `UNIQUE` impede CPF e e-mail duplicados.
-- `DEFAULT CURRENT_TIMESTAMP` registra quando a linha nasceu.
+Na tabela `usuarios`:
 
-Experimente no PostgreSQL:
+- `PRIMARY KEY` identifica cada registro;
+- `NOT NULL` torna campos obrigatórios;
+- `UNIQUE` impede CPF e e-mail duplicados;
+- `CHECK` protege formato e coerência do status;
+- `data_exclusao` implementa a exclusão lógica;
+- `ativo` e `data_desativacao` representam o estado operacional.
+
+Depois leia as tabelas `operadores`, `sessoes` e `auditoria`. Note que a senha
+fica em `senha_hash`; o texto original nunca é salvo.
+
+Pergunta para verificar seu entendimento: por que `usuarios` e `operadores` são
+tabelas diferentes? Porque uma pessoa cadastrada não precisa ter acesso ao
+sistema, e quem opera o sistema não precisa ser um registro gerenciado pelo CRUD.
+
+## 4. Siga um cadastro completo
+
+No React, `frontend/src/lib/api.ts` envia:
+
+```typescript
+create: (user) => request("/usuarios", {
+  method: "POST",
+  body: JSON.stringify(user)
+})
+```
+
+O helper acrescenta `/api`, o cookie acompanha a requisição e o cabeçalho CSRF
+protege a escrita.
+
+No backend, o caminho é:
+
+```text
+routes/users.py
+  -> services/users.py
+  -> validation.py
+  -> repositories/users.py
+  -> PostgreSQL
+```
+
+### Rota
+
+`backend/src/nexo_api/routes/users.py` traduz HTTP. Ela lê o corpo, exige sessão,
+CSRF e permissão `users:write`, chama o serviço e devolve `201`.
+
+### Serviço
+
+`backend/src/nexo_api/services/users.py` coordena o caso de uso:
+
+```python
+created = await self._users.create(validate_user(raw))
+await self._audit.record(actor, "USUARIO_CRIADO", created.id)
+return created
+```
+
+Aqui estão a regra e a auditoria. Não há SQL nem detalhe de React.
+
+### Validação
+
+`backend/src/nexo_api/validation.py` remove pontuação de CPF e telefone,
+normaliza e-mail, confirma data real e futura e calcula os dígitos do CPF.
+
+O frontend também valida para responder rápido, mas a API repete a validação.
+Dados enviados por outra ferramenta não passam pelo formulário React.
+
+### Repositório
+
+`backend/src/nexo_api/repositories/users.py` usa SQL parametrizado:
 
 ```sql
-SELECT * FROM usuarios ORDER BY data_cadastro DESC;
+INSERT INTO usuarios (nome, email, cpf, telefone, data_nascimento)
+VALUES (:nome, :email, :cpf, :telefone, :data_nascimento)
+RETURNING ...
 ```
 
-## 3. Siga o back-end por camadas
+Os valores não são colados na string SQL. Isso reduz risco de injeção e deixa a
+responsabilidade da consulta clara.
 
-Leia nesta ordem:
+## 5. Diferencie desativar, ocultar e apagar
 
-1. `backend/src/routes/usuarioRoutes.js` — associa método e endereço;
-2. `backend/src/controllers/usuarioController.js` — traduz HTTP;
-3. `backend/src/services/usuarioService.js` — aplica regras de negócio;
-4. `backend/src/validation/usuarioValidator.js` — normaliza e valida;
-5. `backend/src/repositories/postgresUsuarioRepository.js` — executa SQL;
-6. `backend/src/middlewares/tratadorErros.js` — converte falhas em respostas.
+- Desativar: mantém a pessoa visível, mas marca `ativo = FALSE`.
+- Ocultar: registra `data_exclusao`; a lista principal deixa de mostrar.
+- Apagar definitivamente: executa `DELETE` somente sobre registro já oculto e
+  somente para `ADMIN`.
 
-As camadas existem para evitar um arquivo gigante que saiba HTTP, regra e SQL ao
-mesmo tempo. Arquivo gigante parece produtivo até precisar ser testado.
+Leia, nesta ordem:
 
-## 4. Entenda a API REST
+1. métodos `deactivate`, `soft_delete` e `permanent_delete` no repositório;
+2. casos de uso correspondentes no serviço;
+3. endpoints `PATCH` e `DELETE` no roteador;
+4. diálogos de confirmação no frontend.
 
-| Ação | Método | Rota | Resposta |
-|---|---|---|---:|
-| Listar | `GET` | `/api/usuarios` | `200` |
-| Consultar | `GET` | `/api/usuarios/:id` | `200` |
-| Cadastrar | `POST` | `/api/usuarios` | `201` |
-| Atualizar | `PUT` | `/api/usuarios/:id` | `200` |
-| Ocultar | `DELETE` | `/api/usuarios/:id` | `204` |
-| Listar ocultos | `GET` | `/api/usuarios/ocultos` | `200` |
-| Restaurar | `PATCH` | `/api/usuarios/:id/restaurar` | `200` |
-| Desativar | `PATCH` | `/api/usuarios/:id/desativar` | `200` |
-| Ativar | `PATCH` | `/api/usuarios/:id/ativar` | `200` |
+Esse desenho dá reversibilidade por padrão e torna a operação irreversível uma
+decisão explícita.
 
-O método continua sendo `DELETE` porque essa é a operação do contrato REST. A
-implementação usa `UPDATE data_exclusao = CURRENT_TIMESTAMP`: a API oculta o
-recurso sem destruir a linha.
+## 6. Entenda o login
 
-Desativar é diferente de ocultar. O usuário desativado permanece na listagem com
-um status visível. A operação atualiza `ativo` e `data_desativacao`; a restrição
-do PostgreSQL impede combinações incoerentes entre esses campos.
+O fluxo fica em `backend/src/nexo_api/services/auth.py`:
 
-Abra o navegador, pressione `F12`, entre em **Network** e repita uma operação.
-Inspecione `Request Payload`, `Status Code` e `Response`.
+1. normaliza o e-mail;
+2. busca a conta em `operadores`;
+3. verifica o hash `scrypt`;
+4. gera token de sessão e token CSRF aleatórios;
+5. grava somente os hashes dos tokens;
+6. envia o token de sessão em cookie `HttpOnly`.
 
-## 5. Comece o React pelo ponto de entrada
+`backend/src/nexo_api/http_auth.py` transforma esse fluxo em dependências do
+FastAPI: autenticar, exigir CSRF e exigir uma permissão.
 
-Leia:
+A matriz em `permissions.py` é pequena de propósito. Procure
+`users:permanent-delete`: ela aparece apenas no conjunto de `ADMIN`.
 
-1. `frontend/src/main.tsx`;
-2. `frontend/src/App.tsx` — configuração, sessão e navegação;
-3. `frontend/src/components/UsersWorkspace.tsx` — CRUD de usuários;
-4. `frontend/src/components/TeamPage.tsx` — contas e permissões;
-5. `frontend/src/types/user.ts`.
+## 7. Entenda o primeiro acesso
 
-`main.tsx` cria a aplicação e fornece o `QueryClient`. `App.tsx` coordena os
-estados da página. `user.ts` define o formato que TypeScript espera dos dados.
+`GET /api/setup/status` consulta se já existe administrador. Se não existe, o
+React mostra `SetupPage.tsx`.
 
-Quando o back-end muda um nome de campo, o tipo ajuda a encontrar no front-end
-os pontos que precisam mudar.
+No Docker, `SETUP_MODE=local` aceita o cadastro porque a porta está publicada em
+`127.0.0.1`. Em produção, `SETUP_MODE=token` exige `SETUP_TOKEN`. O código serve
+para autorizar a criação da primeira conta; ele não vira a senha do usuário.
 
-## 6. Estude a comunicação com a API
+O repositório usa `pg_advisory_xact_lock`. Mesmo que duas pessoas cliquem ao
+mesmo tempo, apenas uma transação cria o primeiro administrador.
 
-Abra `frontend/src/lib/api.ts`.
+## 8. Leia o frontend por responsabilidades
 
-A função `request` centraliza:
+- `App.tsx`: decide entre onboarding, login e área autenticada.
+- `UsersWorkspace.tsx`: coordena busca, página, filtros e mutações.
+- `UserTable.tsx`: apresenta lista e ações.
+- `UserFormDialog.tsx`: cria e edita.
+- `TeamPage.tsx`: administra contas de acesso.
+- `lib/api.ts`: único ponto de comunicação HTTP.
+- `lib/userSchema.ts`: validação imediata do formulário.
+- `types/user.ts`: contrato TypeScript esperado da API.
 
-- cabeçalho JSON;
-- tempo máximo de espera;
-- leitura do corpo;
-- mensagens de erro;
-- tratamento da resposta `204`, que não possui corpo.
+TanStack Query mantém cache e estados de carregamento. Depois de uma mutação, a
+consulta é invalidada e os dados voltam do servidor; o componente não tenta
+inventar uma cópia paralela do banco.
 
-Depois procure `useQuery` e `useMutation` em `App.tsx`, `UsersWorkspace.tsx` e
-`TeamPage.tsx`:
+## 9. Entenda o Docker
 
-- `useQuery` busca e guarda a lista em cache;
-- `useMutation` cria, atualiza, oculta ou restaura;
-- `invalidateQueries` marca a lista como desatualizada e busca dados novos.
+`compose.yaml` inicia cinco unidades:
 
-## 7. Estude o formulário tipado
+1. `database`: PostgreSQL e volume persistente;
+2. `redis`: estado temporário;
+3. `migrate`: aplica SQL e encerra;
+4. `backend`: imagem Python, porta 8000;
+5. `frontend`: imagem Nginx, porta 3000.
 
-Leia:
+O Nginx serve os arquivos React e encaminha `/api` para `backend:8000`. Os dois
+contêineres rodam sem privilégios, perdem capabilities Linux e usam filesystem
+somente leitura com pequenos `tmpfs` onde necessário.
 
-1. `frontend/src/lib/userSchema.ts`;
-2. `frontend/src/components/UserFormDialog.tsx`.
+## 10. Entenda a Vercel
 
-O Zod descreve as regras do formulário. O React Hook Form registra os campos e
-mostra os erros. Antes do envio, CPF e telefone perdem a máscara.
+`vercel.json` descreve dois serviços do mesmo projeto:
 
-Importante: a API valida tudo novamente. Validação no navegador melhora a
-experiência; validação no servidor protege o sistema.
-
-## 8. Estude busca, ordenação e paginação
-
-Abra `frontend/src/lib/userUtils.ts` e depois
-`frontend/src/components/UserDataPanel.tsx`.
-
-- A API valida os parâmetros de busca, ordenação e página.
-- O repositório executa `LIMIT` e `OFFSET` no PostgreSQL.
-- `useDeferredValue` mantém a digitação responsiva antes da nova consulta.
-
-## 9. Estude os componentes visuais
-
-Leia `frontend/src/components` nesta ordem:
-
-1. `Button.tsx` — componente reutilizável e tipado;
-2. `Topbar.tsx` e `Metrics.tsx` — componentes de apresentação;
-3. `UserDataPanel.tsx` — tabela e controles;
-4. `UserFormDialog.tsx` — criação e edição;
-5. `SetupPage.tsx` e `TeamPage.tsx` — primeiro acesso e gestão da equipe;
-6. `ConfirmDialog.tsx` e `Toast.tsx` — ocultação, restauração e retornos.
-
-Os tokens, cores, espaçamentos e estados estão documentados em `DESIGN.md` e
-implementados em `frontend/src/styles.css`.
-
-## 10. Entenda os testes
-
-Execute:
-
-```powershell
-npm test
+```json
+{
+  "experimentalServices": {
+    "frontend": { "entrypoint": "frontend/", "routePrefix": "/" },
+    "backend": { "entrypoint": "backend/server.py", "routePrefix": "/api" }
+  }
+}
 ```
 
-No back-end:
+O arquivo `backend/server.py` exporta a instância FastAPI que a Vercel executa
+como função Python. O Neon substitui o PostgreSQL local e o Upstash substitui o
+Redis TCP. A regra de negócio não muda.
 
-- testes de validação provam entradas válidas e inválidas;
-- testes do service isolam regras de negócio;
-- testes da aplicação exercitam as rotas HTTP.
+O procedimento pelo painel está em `docs/DEPLOY.md`.
 
-No front-end:
-
-- formatadores provam máscaras e datas;
-- `userSchema` prova o formulário;
-- `userUtils` prova busca, ordenação e métricas.
-- `operatorSchema` e `SetupPage` provam o primeiro acesso e as contas individuais.
-
-O teste Docker é diferente: `docker compose up --build -d` prova a imagem,
-as migrações, as dependências e os healthchecks trabalhando em conjunto.
-
-Rode também:
+## 11. Execute a qualidade
 
 ```powershell
+npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 
-Teste verifica comportamento. TypeScript verifica contratos. Build prova que a
-versão de produção pode ser gerada. São verificações diferentes.
+- Ruff verifica estilo e erros comuns do Python.
+- BasedPyright verifica tipos do backend.
+- Pytest testa regras e contrato HTTP.
+- TypeScript verifica o frontend.
+- Vitest e Testing Library testam funções e componentes.
+- Vite produz o build otimizado.
 
-## 11. Exercícios para continuar aprendendo
+Depois execute `docker compose up --build -d` e teste
+`http://localhost:3000/api/saude/prontidao`. Teste unitário prova uma peça;
+smoke test prova que as peças conseguem conversar.
 
-Faça um por vez e escreva um teste antes da alteração:
+## 12. Exercícios seguros
 
-1. adicione filtro por faixa de idade;
-2. crie uma página de detalhes do usuário;
-3. adicione paginação por cursor;
-4. crie um painel de auditoria para ADMIN e AUDITOR;
-5. adicione métricas e logs estruturados usando ferramentas gratuitas;
-6. migre a API para Python/FastAPI preservando os mesmos testes de contrato.
+1. Adicione filtro por status ativo/desativado, começando pelo teste.
+2. Exiba auditoria em uma tela somente para `ADMIN` e `AUDITOR`.
+3. Troque paginação por offset por cursor e compare o SQL.
+4. Crie teste que tente apagar definitivamente sem ocultar antes.
+5. Crie teste que tente desativar o último administrador.
 
-## 12. Versione com intenção
-
-```powershell
-git add .
-git commit -m "feat: adiciona filtro por faixa de idade"
-```
-
-O commit deve contar uma mudança compreensível. “Final agora vai 3” conta apenas
-uma história de sofrimento; o Git merece fatos.
-
-## 13. Checklist de entrega
-
-- preencha autor e link do repositório no `README.md`;
-- confirme que `backend/.env` não aparece no Git;
-- execute `npm run typecheck`, `npm test` e `npm run build`;
-- teste primeiro acesso, gestão de equipe, cadastro, busca, edição, exportação,
-  ativação, desativação, ocultação, restauração e exclusão permanente;
-- confira desktop e celular;
-- publique apenas depois de testar o build de produção.
+Para cada exercício: escreva um teste que falha, implemente o mínimo, faça o
+teste passar e só então refatore.

@@ -57,24 +57,18 @@ services:
     restart: "no"
     networks: [data]
 
-  app:
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     environment:
-      PORT: 3000
-      HOST: 0.0.0.0
-      NODE_ENV: production
+      APP_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-crud_app}:${DB_PASSWORD:-crud_dev_password}@database:5432/${DB_NAME:-crud_usuarios}
+      REDIS_URL: redis://redis:6379
       SESSION_COOKIE_SECURE: "false"
       SETUP_MODE: local
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-crud_usuarios}
-      DB_USER: ${DB_USER:-crud_app}
-      DB_PASSWORD: ${DB_PASSWORD:-crud_dev_password}
-      REDIS_URL: redis://redis:6379
     ports:
-      - "127.0.0.1:${APP_PORT:-3000}:3000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -83,9 +77,9 @@ services:
     healthcheck:
       test:
         - CMD
-        - node
-        - -e
-        - fetch('http://127.0.0.1:3000/api/saude/prontidao').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/saude/prontidao', timeout=3)
       interval: 10s
       timeout: 5s
       retries: 12
@@ -99,6 +93,32 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     networks: [web, data]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks: [web]
 
 networks:
   web:

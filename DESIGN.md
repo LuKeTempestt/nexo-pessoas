@@ -3,9 +3,8 @@
 ## 1. Direção
 
 Nexo Pessoas é um produto operacional para pequenas equipes manterem cadastros
-organizados. A interface abandona a aparência de exercício acadêmico e coloca a
-lista de usuários no centro: localizar, cadastrar, corrigir ou ocultar um registro
-deve exigir poucos segundos.
+organizados. A interface coloca a lista de usuários no centro: localizar,
+cadastrar, corrigir ou ocultar um registro deve exigir poucos segundos.
 
 - Atmosfera: sóbria, precisa e confiável.
 - Material: superfícies brancas nítidas sobre um canvas frio e silencioso.

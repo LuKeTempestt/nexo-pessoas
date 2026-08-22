@@ -2,129 +2,98 @@
 
 ## Visão geral
 
-O projeto é um monorepo npm com dois workspaces:
-
-- `frontend`: aplicação React compilada pelo Vite;
-- `backend`: API Express e servidor dos arquivos de produção.
-
-PostgreSQL e Redis permanecem serviços independentes. Essa separação permite
-desenvolver o front-end com recarga rápida e executar a solução inteira com
-Docker Compose, sem conta em nuvem.
-
-## Ambiente Docker
+O repositório é um monorepo poliglota. React e FastAPI evoluem de forma
+independente, mas mantêm um contrato HTTP único. PostgreSQL guarda estado de
+negócio; Redis guarda somente contadores temporários de segurança.
 
 ```text
-Navegador -> app (React compilado + Express)
-                 |-> PostgreSQL (usuários, operadores, sessões, auditoria)
-                 |-> Redis (limitação temporária de tentativas)
-
-migrate -> PostgreSQL -> encerra com sucesso
+Navegador
+   |
+   +-- / --------> frontend (React/Vite ou Nginx)
+   |
+   +-- /api/* ---> backend (Python/FastAPI)
+                         |-- PostgreSQL
+                         |-- Redis/Upstash
 ```
 
-O Compose só inicia `app` depois de PostgreSQL, migrações e Redis estarem
-saudáveis. O banco usa volume persistente; o Redis guarda apenas estado
-temporário de segurança e não precisa persistir em disco.
+## Separação por ambiente
 
-## Fluxo de produção
+| Ambiente | Frontend | Backend | PostgreSQL | Redis |
+|---|---|---|---|---|
+| Docker | Nginx não privilegiado | Uvicorn/FastAPI não privilegiado | contêiner com volume | contêiner sem persistência |
+| Vercel | serviço Vite em `/` | serviço FastAPI em `/api` | Neon externo | Upstash REST externo |
+
+O navegador continua em uma única origem. Isso mantém cookies e CSRF simples,
+evita CORS e não transforma separação técnica em complexidade para o usuário.
+
+## Camadas do backend
 
 ```text
-npm run build
-  -> TypeScript verifica o front-end
-  -> Vite gera frontend/dist
-  -> Express serve frontend/dist
-  -> /api continua atendida pelos controllers
+routes -> services -> repositories -> PostgreSQL
+   |          |
+ schemas   domain + validation
+              |
+          audit + permissions
 ```
 
-## Responsabilidades
-
-| Camada | Responsabilidade | Não deve fazer |
+| Camada | Faz | Não faz |
 |---|---|---|
-| React | interação e apresentação | executar SQL |
-| API client | traduzir HTTP para funções | renderizar interface |
-| Controller | receber e responder HTTP | decidir regra de negócio |
-| Service | coordenar regras | conhecer elementos HTML |
-| Validator | normalizar e validar | acessar o banco |
-| Repository | persistir com SQL | escolher códigos HTTP |
-| PostgreSQL | integridade e armazenamento | controlar a interface |
-| Redis | estado temporário compartilhado | guardar usuários ou senhas |
+| Routes | traduz HTTP e aplica dependências de acesso | escrever SQL |
+| Services | coordena casos de uso e auditoria | conhecer React |
+| Validation | normaliza CPF, telefone, datas, IDs e perfis | acessar banco |
+| Repositories | executa SQL parametrizado e transações | escolher código HTTP |
+| PostgreSQL | integridade, unicidade, histórico e sessões | controlar interface |
+| Redis | limite temporário de tentativas | guardar pessoas ou senhas |
 
-## Segurança e perfis
+## Autenticação e autorização
 
-Contas de operação ficam em `operadores`; usuários gerenciados permanecem em
-`usuarios`. Sessões usam token aleatório em cookie `HttpOnly`, enquanto o banco
-guarda somente seu hash. Escritas também exigem token CSRF.
+Contas de acesso estão em `operadores`; pessoas gerenciadas estão em `usuarios`.
+Essa separação evita confundir quem opera o sistema com quem aparece no cadastro.
 
-| Perfil | Consulta | Altera | Apaga definitivamente | Auditoria |
-|---|---:|---:|---:|---:|
-| ADMIN | sim | sim | sim | sim |
-| OPERADOR | sim | sim | não | não |
-| AUDITOR | sim | não | não | sim |
+| Perfil | Consulta | Altera | Exclusão definitiva | Auditoria | Equipe |
+|---|---:|---:|---:|---:|---:|
+| ADMIN | sim | sim | sim | sim | sim |
+| OPERADOR | sim | sim | não | não | não |
+| AUDITOR | sim | não | não | sim | não |
 
-Somente `ADMIN` gerencia contas de operação. A API impede que uma pessoa
-desative ou rebaixe a própria conta e protege o último administrador ativo. Uma
-troca de perfil, desativação ou redefinição de senha revoga sessões anteriores.
+O token de sessão fica em cookie `HttpOnly`; o banco recebe apenas SHA-256 do
+token. Escritas exigem um token CSRF separado. Senhas usam `scrypt` com salt
+aleatório. Alterar perfil, desativar conta ou redefinir senha revoga sessões.
 
-## Configuração inicial
+Locks transacionais impedem auto-rebaixamento e a remoção do último
+administrador ativo. O primeiro administrador também é criado sob lock, portanto
+duas requisições concorrentes não conseguem concluir o onboarding duas vezes.
 
-`GET /api/setup/status` informa se já existe administrador. Quando não existe,
-a interface oferece o cadastro inicial. O repositório usa transação e lock
-consultivo no PostgreSQL para impedir que duas requisições criem dois primeiros
-administradores ao mesmo tempo.
+## Ciclo de vida de uma pessoa
 
-No Compose local, a aplicação é publicada apenas em `127.0.0.1` e o fluxo não
-exige código. Em produção, `SETUP_MODE=token` exige um `SETUP_TOKEN` secreto que
-nunca é incorporado ao JavaScript do navegador.
+```text
+Ativa <-> Desativada
+  |           |
+  +---- ocultar ----> Oculta ---- restaurar ----> estado anterior visível
+                         |
+                         +---- apagar definitivamente (ADMIN)
+```
 
-## Exclusão lógica
+Ocultar atualiza `data_exclusao`; não executa `DELETE`. A remoção física só
+aceita um registro já oculto. `ativo` e `data_desativacao` possuem uma constraint
+que impede estados contraditórios.
 
-O endpoint `DELETE /api/usuarios/:id` não executa `DELETE FROM`. Ele registra
-`data_exclusao = CURRENT_TIMESTAMP`. As consultas comuns filtram
-`data_exclusao IS NULL`; a área de ocultos usa o filtro inverso.
+## Banco e migrações
 
-Essa decisão preserva histórico e permite restauração. Os índices parciais
-`idx_usuarios_ativos_id` e `idx_usuarios_ocultos_data` atendem os dois padrões de
-consulta sem indexar linhas desnecessárias.
+- `01_criar_tabela.sql`: estado completo para instalação nova;
+- `02_adicionar_exclusao_logica.sql`: exclusão reversível;
+- `03_adicionar_status_usuario.sql`: ativação e desativação;
+- `04_adicionar_seguranca_e_auditoria.sql`: contas, sessões e auditoria.
 
-A migração está em `database/02_adicionar_exclusao_logica.sql`, com rollback em
-`database/02_reverter_exclusao_logica.sql`.
+Os scripts são idempotentes. O serviço `migrate` os aplica antes do FastAPI no
+Docker. No Neon, a mesma sequência é executada pelo SQL Editor antes do primeiro
+deploy.
 
-## Ativação e desativação
+## Decisões operacionais
 
-Usuários visíveis possuem `ativo` e `data_desativacao`. Desativar não oculta o
-registro: apenas altera seu estado operacional. A constraint
-`ck_usuarios_status_ativo` garante que usuário ativo não tenha data de
-desativação e que usuário desativado tenha essa data.
-
-A mudança reversível está em `database/03_adicionar_status_usuario.sql` e
-`database/03_reverter_status_usuario.sql`.
-
-## Decisões principais
-
-### React Query
-
-Centraliza carregamento, cache, erros e atualização da lista. Depois de uma
-mutação, a consulta `users` é invalidada, evitando sincronização manual frágil.
-
-### React Hook Form e Zod
-
-Mantêm o formulário tipado e reduzem renderizações desnecessárias. O schema do
-front-end melhora o retorno imediato, mas não substitui o validador do servidor.
-
-### Paginação no servidor
-
-Busca, ordenação e paginação chegam como parâmetros validados. O PostgreSQL usa
-`LIMIT` e `OFFSET`, e a resposta inclui total de registros e páginas.
-
-### Build servido pelo Express
-
-Simplifica a primeira publicação: uma URL entrega interface e API, sem CORS entre
-origens. Em escala maior, o front-end pode ir para uma CDN e a API permanecer em
-serviço separado.
-
-## Próximos passos de produto
-
-1. logs estruturados e métricas com ferramentas locais e gratuitas;
-2. recuperação de senha por e-mail quando houver provedor configurado;
-3. autenticação multifator;
-4. paginação por cursor para bases muito grandes;
-5. migração controlada da API para Python/FastAPI como evolução separada.
+- SQLAlchemy assíncrono e `asyncpg` evitam bloquear o servidor durante I/O.
+- A URL pooled do Neon é usada pela API; migrações usam conexão direta.
+- Redis TCP atende o Docker; Upstash REST evita conexões persistentes em funções.
+- Nginx serve assets imutáveis e encaminha `/api` ao contêiner Python.
+- Vercel Services constrói React e FastAPI separadamente sob um domínio.
+- Healthchecks distinguem processo ativo de dependências prontas.
