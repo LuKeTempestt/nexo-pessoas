@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import RequestResponseEndpoint
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import Response
 
 from nexo_api.config import Settings, get_settings
@@ -37,12 +38,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     application = FastAPI(
         title="Nexo Pessoas API",
-        version="5.0.0",
+        version="5.1.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
-    _install_middleware(application)
+    _install_middleware(application, container.settings)
     _install_error_handlers(application)
     _install_routes(application, container)
     return application
@@ -78,7 +79,10 @@ def _install_routes(application: FastAPI, container: Container) -> None:
     application.include_router(create_audit_router(container.audit, auth_dependencies))
 
 
-def _install_middleware(application: FastAPI) -> None:
+def _install_middleware(application: FastAPI, settings: Settings) -> None:
+    allowed_hosts = [host.strip() for host in settings.trusted_host.split(",") if host.strip()]
+    application.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts or ["*"])
+
     @application.middleware("http")
     async def secure_headers(
         request: Request, call_next: RequestResponseEndpoint

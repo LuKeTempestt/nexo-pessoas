@@ -21,7 +21,7 @@ jobs:
       - name: Instalar uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          python-version: "3.13"
+          python-version: "3.12"
           cache-dependency-glob: backend/uv.lock
       - run: npm ci
       - run: uv sync --project backend --locked --dev
@@ -81,6 +81,12 @@ jobs:
             "$base/usuarios")
           id=$(echo "$created" | jq --raw-output '.id')
 
+          curl --fail --silent --show-error --request PUT \
+            --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
+            --header 'Content-Type: application/json' \
+            --data '{"nome":"Pessoa CI Atualizada","email":"pessoa-ci-atualizada@nexo.local","cpf":"16899535009","telefone":"11988888888","dataNascimento":"1995-03-15"}' \
+            "$base/usuarios/$id" | jq --exit-status '.nome == "Pessoa CI Atualizada"'
+
           curl --fail --silent --show-error --request PATCH \
             --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
             "$base/usuarios/$id/desativar"
@@ -99,6 +105,10 @@ jobs:
           curl --fail --silent --show-error --request DELETE \
             --cookie /tmp/nexo-cookies --header "X-CSRF-Token: $csrf" \
             "$base/usuarios/$id/permanente"
+
+          curl --fail --silent --show-error \
+            --cookie /tmp/nexo-cookies \
+            "$base/auditoria" | jq --exit-status '.total >= 7'
       - name: Validar configuração inicial, PostgreSQL e Redis
         run: |
           curl --fail --silent http://127.0.0.1:3000/api/setup/status

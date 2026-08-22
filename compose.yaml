@@ -22,6 +22,8 @@ services:
   redis:
     image: redis:8-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -62,11 +64,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      APP_ENV: production
+      APP_ENV: development
       DATABASE_URL: postgresql://${DB_USER:-crud_app}:${DB_PASSWORD:-crud_dev_password}@database:5432/${DB_NAME:-crud_usuarios}
       REDIS_URL: redis://redis:6379
       SESSION_COOKIE_SECURE: "false"
       SETUP_MODE: local
+      TRUSTED_HOST: localhost,127.0.0.1
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
