@@ -180,6 +180,7 @@ mesmo tempo, apenas uma transação cria o primeiro administrador.
 - `UserTable.tsx`: apresenta lista e ações.
 - `UserFormDialog.tsx`: cria e edita.
 - `TeamPage.tsx`: administra contas de acesso.
+- `AuditPage.tsx`: consulta a trilha paginada conforme o perfil.
 - `lib/api.ts`: único ponto de comunicação HTTP.
 - `lib/userSchema.ts`: validação imediata do formulário.
 - `types/user.ts`: contrato TypeScript esperado da API.
@@ -242,6 +243,7 @@ npm run build
 - BasedPyright verifica tipos do backend.
 - Pytest testa regras e contrato HTTP.
 - TypeScript verifica o frontend.
+- ESLint verifica regras do React e consistência do TypeScript.
 - Vitest e Testing Library testam funções e componentes.
 - Vite produz o build otimizado.
 

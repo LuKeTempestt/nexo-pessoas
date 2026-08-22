@@ -14,9 +14,10 @@ Projeto Vercel Nexo Pessoas
        └── UPSTASH_*    -> Upstash Redis
 ```
 
-Configuração pública atual: Vercel Hobby, Neon Free em São Paulo
-(`AWS sa-east-1`) e Upstash Free conectado pela integração da Vercel. Nenhum ID,
-token ou endereço de banco deve ser documentado no repositório.
+Configuração pública atual: Vercel Hobby, um único projeto Neon Free chamado
+**Nexo Pessoas** em São Paulo (`AWS sa-east-1`) e Upstash Free conectado pela
+integração da Vercel. Nenhum ID, token ou endereço de banco deve ser documentado
+no repositório.
 
 ## 1. Criar o PostgreSQL no Neon
 
@@ -30,6 +31,11 @@ token ou endereço de banco deve ser documentado no repositório.
    `DATABASE_URL` da aplicação.
 5. Guarde também a conexão direta apenas para futuras migrações. Não coloque
    nenhuma das duas no GitHub.
+
+Dentro desse mesmo projeto de São Paulo, mantenha duas branches: `production`
+e `preview`. Elas não são dois projetos nem duas regiões. A branch de Preview é
+uma cópia isolada por copy-on-write: testes podem gravar nela sem alterar
+Production. Aplique os mesmos scripts SQL nas duas branches.
 
 ## 2. Criar o Redis no Upstash
 
@@ -71,17 +77,18 @@ dois projetos Vercel independentes.
 ## 4. Configurar variáveis na Vercel
 
 Em **Project Settings > Environment Variables**, adicione segredos apenas para
-Production e Preview. O ambiente local continua usando Docker:
+Production e Preview. O ambiente local continua usando Docker. `DATABASE_URL`
+e `SETUP_TOKEN` precisam ter valores diferentes em cada ambiente:
 
 | Variável | Valor |
 |---|---|
 | `APP_ENV` | `production` |
-| `DATABASE_URL` | conexão pooled copiada do Neon |
+| `DATABASE_URL` | branch `production` em Production; branch `preview` em Preview |
 | `UPSTASH_REDIS_REST_URL` | URL REST copiada do Upstash |
 | `UPSTASH_REDIS_REST_TOKEN` | token REST copiado do Upstash |
 | `SESSION_COOKIE_SECURE` | `true` |
 | `SETUP_MODE` | `token` |
-| `SETUP_TOKEN` | código aleatório com pelo menos 32 caracteres |
+| `SETUP_TOKEN` | código aleatório diferente para cada ambiente, com pelo menos 32 caracteres |
 | `TRUSTED_HOST` | domínios exatos separados por vírgula em Production; `*.vercel.app` apenas em Preview, cujas URLs mudam por branch |
 
 Não existe login pronto no GitHub. `SETUP_TOKEN` protege somente a criação da
@@ -102,6 +109,10 @@ hook.
 5. Faça o fluxo: cadastrar, editar, desativar, ativar, ocultar e restaurar.
 6. Apague definitivamente somente um cadastro fictício criado para o teste.
 7. Faça o merge somente depois de CI, CodeQL e Preview aprovados.
+
+Use somente dados fictícios no Preview. O Upstash compartilhado guarda apenas
+contadores temporários de rate limit; usuários, contas e auditoria ficam
+isolados nas branches do Neon.
 
 ## Custos e limites
 
