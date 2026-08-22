@@ -2,6 +2,24 @@
 
 As mudanças relevantes deste produto seguem versionamento semântico.
 
+## 5.1.0 - 2026-08-22
+
+### Adicionado
+
+- tela paginada de auditoria para administradores e auditores;
+- licença MIT, guia de contribuição e templates de colaboração;
+- CodeQL, Dependabot e lint do frontend;
+- captura real com dados fictícios e roteiro rápido para recrutadores;
+- validação fail-fast da configuração de produção e hosts confiáveis;
+- roadmap técnico com limitações e prioridades explícitas.
+
+### Corrigido
+
+- descrição técnica e documentação do backend FastAPI;
+- execução local com `backend/.env`, Redis acessível e migrações aplicadas;
+- smoke test Docker passou a validar edição e consulta de auditoria;
+- runtime Python alinhado ao ambiente da Vercel.
+
 ## 5.0.0 - 2026-08-21
 
 ### Adicionado

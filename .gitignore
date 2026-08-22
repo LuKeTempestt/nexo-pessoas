@@ -17,3 +17,5 @@ backend/.env
 *.log
 .DS_Store
 Thumbs.db
+/.env*
+!/.env.example

@@ -14,6 +14,11 @@ Projeto Vercel Nexo Pessoas
        └── UPSTASH_*    -> Upstash Redis
 ```
 
+Configuração pública atual: Vercel Hobby, um único projeto Neon Free chamado
+**Nexo Pessoas** em São Paulo (`AWS sa-east-1`) e Upstash Free conectado pela
+integração da Vercel. Nenhum ID, token ou endereço de banco deve ser documentado
+no repositório.
+
 ## 1. Criar o PostgreSQL no Neon
 
 1. Entre no painel do Neon e crie um projeto no plano gratuito.
@@ -27,12 +32,31 @@ Projeto Vercel Nexo Pessoas
 5. Guarde também a conexão direta apenas para futuras migrações. Não coloque
    nenhuma das duas no GitHub.
 
+Dentro desse mesmo projeto de São Paulo, mantenha duas branches: `production`
+e `preview`. Elas não são dois projetos nem duas regiões. A branch de Preview é
+uma cópia isolada por copy-on-write: testes podem gravar nela sem alterar
+Production. Aplique os mesmos scripts SQL nas duas branches.
+
 ## 2. Criar o Redis no Upstash
 
 1. Entre no console do Upstash e crie um banco Redis gratuito.
 2. Escolha uma região próxima da região usada pelos outros serviços.
 3. Copie `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`.
 4. Não use o token `READ_ONLY`; o limitador precisa incrementar e excluir chaves.
+
+### Alternativa: integração pelo Marketplace da Vercel
+
+A integração pode criar o recurso gratuito e injetar variáveis `KV_*` e
+`REDIS_URL`. O backend usa a API REST do Upstash, portanto crie aliases sensíveis
+em Production e Preview:
+
+| Variável do backend | Valor fornecido pela integração |
+|---|---|
+| `UPSTASH_REDIS_REST_URL` | URL REST do recurso conectado |
+| `UPSTASH_REDIS_REST_TOKEN` | token REST de leitura e escrita |
+
+Não copie esses valores para Development ou para o GitHub. O Docker local usa
+Redis TCP e não precisa dos segredos da nuvem.
 
 O Redis não guarda usuários nem senhas. Ele contém apenas contadores com prazo de
 expiração para limitar tentativas de login e onboarding.
@@ -41,30 +65,31 @@ expiração para limitar tentativas de login e onboarding.
 
 1. No painel da Vercel, selecione **Add New > Project**.
 2. Importe `LuKeTempestt/nexo-pessoas`.
-3. Em **Framework Preset**, selecione **Services**.
-4. Mantenha o diretório raiz do repositório.
-5. A configuração de `vercel.json` criará:
+3. Mantenha o diretório raiz do repositório.
+4. A configuração de `vercel.json` criará:
    - `frontend`, framework Vite, prefixo `/`;
    - `backend`, framework FastAPI, prefixo `/api`.
 
-Vercel Services está em beta. Se a opção **Services** não aparecer na conta,
-solicite o acesso pelo próprio painel antes de publicar; não transforme o
-backend em JavaScript e não misture os dois serviços para contornar a tela.
+As regras `rewrites` enviam `/api/*` ao serviço Python e todo o restante ao
+serviço React. Não é necessário transformar o backend em JavaScript nem criar
+dois projetos Vercel independentes.
 
 ## 4. Configurar variáveis na Vercel
 
-Em **Project Settings > Environment Variables**, adicione para Production,
-Preview e Development quando aplicável:
+Em **Project Settings > Environment Variables**, adicione segredos apenas para
+Production e Preview. O ambiente local continua usando Docker. `DATABASE_URL`
+e `SETUP_TOKEN` precisam ter valores diferentes em cada ambiente:
 
 | Variável | Valor |
 |---|---|
 | `APP_ENV` | `production` |
-| `DATABASE_URL` | conexão pooled copiada do Neon |
+| `DATABASE_URL` | branch `production` em Production; branch `preview` em Preview |
 | `UPSTASH_REDIS_REST_URL` | URL REST copiada do Upstash |
 | `UPSTASH_REDIS_REST_TOKEN` | token REST copiado do Upstash |
 | `SESSION_COOKIE_SECURE` | `true` |
 | `SETUP_MODE` | `token` |
-| `SETUP_TOKEN` | código longo e aleatório criado por você |
+| `SETUP_TOKEN` | código aleatório diferente para cada ambiente, com pelo menos 32 caracteres |
+| `TRUSTED_HOST` | domínios exatos separados por vírgula em Production; `*.vercel.app` apenas em Preview, cujas URLs mudam por branch |
 
 Não existe login pronto no GitHub. `SETUP_TOKEN` protege somente a criação da
 primeira conta. Depois do deploy, a própria tela pedirá nome, e-mail, senha e
@@ -72,14 +97,22 @@ esse código. A senha escolhida será o login real do primeiro `ADMIN`.
 
 ## 5. Publicar e validar
 
-1. Clique em **Deploy**.
-2. Abra a URL de Preview.
-3. Confira `/api/saude/prontidao`; a resposta esperada é `{"status":"pronto"}`.
-4. Abra `/api/docs` para confirmar o OpenAPI do FastAPI.
-5. Na tela principal, crie o primeiro administrador com o `SETUP_TOKEN`.
-6. Faça o fluxo: cadastrar, editar, desativar, ativar, ocultar e restaurar.
-7. Apague definitivamente somente um cadastro fictício criado para o teste.
-8. Promova a mesma versão para Production depois dessas verificações.
+A integração Git da Vercel cria um Preview para o pull request. O GitHub Actions
+executa qualidade, testes, build e o fluxo Docker; após a aprovação desses
+checks, o merge em `main` aciona o deploy de Production sem um segundo deploy
+hook.
+
+1. Abra a URL de Preview gerada pela Vercel.
+2. Confira `/api/saude/prontidao`; a resposta esperada é `{"status":"pronto"}`.
+3. Abra `/api/docs` para confirmar o OpenAPI do FastAPI.
+4. Na tela principal, crie o primeiro administrador com o `SETUP_TOKEN`.
+5. Faça o fluxo: cadastrar, editar, desativar, ativar, ocultar e restaurar.
+6. Apague definitivamente somente um cadastro fictício criado para o teste.
+7. Faça o merge somente depois de CI, CodeQL e Preview aprovados.
+
+Use somente dados fictícios no Preview. O Upstash compartilhado guarda apenas
+contadores temporários de rate limit; usuários, contas e auditoria ficam
+isolados nas branches do Neon.
 
 ## Custos e limites
 

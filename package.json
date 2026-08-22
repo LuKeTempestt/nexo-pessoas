@@ -1,8 +1,11 @@
 {
   "name": "nexo-pessoas",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "private": true,
   "description": "Produto full stack para gerenciamento de usuários.",
+  "engines": {
+    "node": ">=22.13"
+  },
   "workspaces": [
     "frontend"
   ],
@@ -10,10 +13,11 @@
     "dev": "concurrently -n API,WEB -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "uv run --project backend uvicorn nexo_api.app:app --host 127.0.0.1 --port 8000 --reload",
     "dev:web": "npm run dev -w frontend",
+    "dev:infra": "docker compose up -d database redis && docker compose run --rm migrate",
     "build": "npm run build -w frontend",
     "test": "uv run --project backend pytest -c backend/pyproject.toml backend/tests && npm run test -w frontend",
-    "test:ci": "uv run --project backend pytest -c backend/pyproject.toml backend/tests && npm run test -w frontend",
-    "lint": "uv run --project backend ruff check --config backend/pyproject.toml backend",
+    "test:ci": "npm test",
+    "lint": "uv run --project backend ruff check --config backend/pyproject.toml backend && npm run lint -w frontend",
     "typecheck": "uv run --project backend basedpyright --project backend/pyproject.toml && npm run typecheck -w frontend",
     "docker:up": "docker compose up --build -d",
     "docker:logs": "docker compose logs -f frontend backend",

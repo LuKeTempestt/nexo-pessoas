@@ -1,5 +1,9 @@
 # Sistema visual — Nexo Pessoas
 
+![Tela principal com cadastros fictícios](./docs/screenshots/usuarios.jpg)
+
+![Tela de auditoria com eventos fictícios](./docs/screenshots/auditoria.jpg)
+
 ## 1. Direção
 
 Nexo Pessoas é um produto operacional para pequenas equipes manterem cadastros
@@ -90,8 +94,8 @@ Unidade base: 4px.
 ### Marca e barra superior
 
 - Símbolo geométrico próprio com trilho cobalto e wordmark textual.
-- Navegação operacional alterna entre “Usuários” e, para administradores,
-  “Equipe e acessos”.
+- Navegação operacional alterna entre “Usuários”, “Equipe e acessos” para
+  administradores e “Auditoria” para perfis autorizados.
 - A conta autenticada e a ação de sair permanecem visíveis sem inventar dados.
 
 ### Botão
@@ -156,6 +160,12 @@ Unidade base: 4px.
 - Permite criar contas individuais, trocar perfil, ativar, desativar, redefinir
   senha e revogar sessões.
 - A própria conta não pode ser desativada nem rebaixada pela interface.
+
+### Auditoria
+
+- Tabela somente leitura com data, responsável, ação, registro e contexto.
+- Acesso restrito a `ADMIN` e `AUDITOR`, com paginação fornecida pelo backend.
+- A apresentação usa rótulos humanos sem alterar os códigos persistidos.
 
 ## 6. Movimento e interação
 

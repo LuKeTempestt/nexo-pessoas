@@ -1,7 +1,7 @@
-# Guia de estudo passo a passo
+# Guia de desenvolvimento
 
 Este guia explica o código na ordem em que uma ação atravessa o produto. A
-interface permanece limpa; a aula fica na documentação.
+interface permanece operacional; o raciocínio técnico fica na documentação.
 
 ## 1. Entenda as quatro partes
 
@@ -180,6 +180,7 @@ mesmo tempo, apenas uma transação cria o primeiro administrador.
 - `UserTable.tsx`: apresenta lista e ações.
 - `UserFormDialog.tsx`: cria e edita.
 - `TeamPage.tsx`: administra contas de acesso.
+- `AuditPage.tsx`: consulta a trilha paginada conforme o perfil.
 - `lib/api.ts`: único ponto de comunicação HTTP.
 - `lib/userSchema.ts`: validação imediata do formulário.
 - `types/user.ts`: contrato TypeScript esperado da API.
@@ -208,10 +209,18 @@ somente leitura com pequenos `tmpfs` onde necessário.
 
 ```json
 {
-  "experimentalServices": {
-    "frontend": { "entrypoint": "frontend/", "routePrefix": "/" },
-    "backend": { "entrypoint": "backend/server.py", "routePrefix": "/api" }
-  }
+  "services": {
+    "frontend": { "root": "frontend/", "framework": "vite" },
+    "backend": {
+      "root": "backend/",
+      "framework": "fastapi",
+      "entrypoint": "server:app"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ]
 }
 ```
 
@@ -234,6 +243,7 @@ npm run build
 - BasedPyright verifica tipos do backend.
 - Pytest testa regras e contrato HTTP.
 - TypeScript verifica o frontend.
+- ESLint verifica regras do React e consistência do TypeScript.
 - Vitest e Testing Library testam funções e componentes.
 - Vite produz o build otimizado.
 
@@ -241,10 +251,10 @@ Depois execute `docker compose up --build -d` e teste
 `http://localhost:3000/api/saude/prontidao`. Teste unitário prova uma peça;
 smoke test prova que as peças conseguem conversar.
 
-## 12. Exercícios seguros
+## 12. Evoluções orientadas por testes
 
 1. Adicione filtro por status ativo/desativado, começando pelo teste.
-2. Exiba auditoria em uma tela somente para `ADMIN` e `AUDITOR`.
+2. Adicione filtros por ação e responsável à tela de auditoria.
 3. Troque paginação por offset por cursor e compare o SQL.
 4. Crie teste que tente apagar definitivamente sem ocultar antes.
 5. Crie teste que tente desativar o último administrador.

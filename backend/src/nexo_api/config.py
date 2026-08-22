@@ -1,16 +1,21 @@
 """Configuração validada por variáveis de ambiente."""
 
 from functools import lru_cache
-from typing import Literal
+from pathlib import Path
+from typing import Literal, Self
 
-from pydantic import Field, SecretStr, computed_field
+from pydantic import Field, SecretStr, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Configuração única do processo da API."""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        extra="ignore",
+        case_sensitive=False,
+    )
 
     app_env: Literal["development", "test", "production"] = "development"
     database_url: str | None = None
@@ -27,6 +32,43 @@ class Settings(BaseSettings):
     session_cookie_secure: bool = True
     trusted_host: str = "*"
     vercel: bool = Field(default=False, validation_alias="VERCEL")
+
+    @model_validator(mode="after")
+    def validate_environment(self) -> Self:
+        """Recusa produção sem os controles necessários para autenticação."""
+        token = self.upstash_redis_rest_token
+        upstash_token_value = token.get_secret_value().strip() if token else ""
+        setup_token_value = self.setup_token.get_secret_value().strip() if self.setup_token else ""
+        has_upstash_token = bool(upstash_token_value)
+        if bool(self.upstash_redis_rest_url) != has_upstash_token:
+            msg = "UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN devem ser definidos juntos."
+            raise ValueError(msg)
+        is_managed_deployment = self.app_env == "production" or self.vercel
+        if not is_managed_deployment:
+            return self
+
+        trusted_hosts = self.allowed_hosts
+        missing: list[str] = []
+        if not self.database_url:
+            missing.append("DATABASE_URL")
+        if not (self.redis_url or (self.upstash_redis_rest_url and has_upstash_token)):
+            missing.append("Redis ou Upstash")
+        if self.setup_mode != "token" or len(setup_token_value) < 32:
+            missing.append("SETUP_MODE=token e SETUP_TOKEN com pelo menos 32 caracteres")
+        if not self.session_cookie_secure:
+            missing.append("SESSION_COOKIE_SECURE=true")
+        if not trusted_hosts or "*" in trusted_hosts:
+            missing.append("TRUSTED_HOST sem curingas globais")
+        if missing:
+            msg = f"Configuração de produção incompleta: {', '.join(missing)}."
+            raise ValueError(msg)
+        self.trusted_host = ",".join(trusted_hosts)
+        return self
+
+    @property
+    def allowed_hosts(self) -> list[str]:
+        """Normaliza a lista de hosts usada pelo middleware HTTP."""
+        return [host.strip() for host in self.trusted_host.split(",") if host.strip()]
 
     @computed_field
     @property

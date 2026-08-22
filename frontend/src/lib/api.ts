@@ -1,4 +1,5 @@
 import type {
+  AuditPage,
   Operator,
   OperatorInput,
   OperatorRole,
@@ -36,9 +37,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "TimeoutError") {
-      throw new Error("A API demorou demais para responder.");
+      throw new Error("A API demorou demais para responder.", { cause: error });
     }
-    throw new Error("Não foi possível conectar à API.");
+    throw new Error("Não foi possível conectar à API.", { cause: error });
   }
 
   if (response.status === 204) {
@@ -125,4 +126,8 @@ export const operatorsApi = {
     body: JSON.stringify({ password })
   }),
   revokeSessions: (id: string) => request<void>(`/operadores/${id}/sessoes`, { method: "DELETE" })
+};
+
+export const auditApi = {
+  list: (page: number) => request<AuditPage>(`/auditoria?page=${page}`)
 };

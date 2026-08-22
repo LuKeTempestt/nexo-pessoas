@@ -46,4 +46,19 @@ export type SetupStatus = {
   readonly requiresToken: boolean;
   readonly configured: boolean;
 };
-export type AppSection = "users" | "team";
+export type AuditEvent = {
+  readonly id: number;
+  readonly operadorEmail: string;
+  readonly acao: string;
+  readonly entidadeId: number | null;
+  readonly detalhes: Readonly<Record<string, string>>;
+  readonly dataEvento: string;
+};
+export type AuditPage = {
+  readonly items: readonly AuditEvent[];
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+  readonly totalPages: number;
+};
+export type AppSection = "users" | "team" | "audit";
