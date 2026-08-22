@@ -6,7 +6,7 @@ As mudanças relevantes deste produto seguem versionamento semântico.
 
 ### Corrigido
 
-- nome completo do responsável pela manutenção no README e na licença;
+- identificação do responsável no README e autoria legal na licença;
 - propriedade técnica explícita por meio de `CODEOWNERS`;
 - fluxo público de contribuição, revisão e relatos de segurança.
 

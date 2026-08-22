@@ -211,7 +211,7 @@ nexo-pessoas/
 
 ## Manutenção, contribuição e licença
 
-Responsável pela manutenção: [João Fernando De Paiva E Silva
+Responsável pela manutenção: [João Fernando
 (@LuKeTempestt)](https://github.com/LuKeTempestt). Alterações passam por Pull
 Request, CI, análise CodeQL e validação do ambiente de prévia antes de chegar à
 produção.
