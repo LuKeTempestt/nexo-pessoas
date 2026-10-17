@@ -3,7 +3,7 @@ name: crud-usuarios
 
 services:
   database:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-crud_usuarios}
       POSTGRES_USER: ${DB_USER:-crud_app}
@@ -34,7 +34,7 @@ services:
     networks: [data]
 
   migrate:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       PGHOST: database
       PGPORT: 5432
