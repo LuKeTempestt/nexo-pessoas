@@ -11,7 +11,7 @@ COPY src ./src
 COPY server.py ./server.py
 RUN uv sync --locked --no-dev
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
